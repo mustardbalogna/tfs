@@ -16,6 +16,7 @@ export default function PageViewTracker() {
   const location = useLocation();
 
   useEffect(() => {
+    if (location.pathname.startsWith("/admin")) return; // don't track the owner's own visits
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
