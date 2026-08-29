@@ -25,3 +25,17 @@ create table if not exists public.rate_limits (
 alter table public.rate_limits enable row level security;
 -- Same reasoning as above: only the service role key touches this table.
 grant select, insert, update, delete on public.rate_limits to service_role;
+
+create table if not exists public.page_views (
+  id bigint generated always as identity primary key,
+  path text not null,
+  visitor_id text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists page_views_created_at_idx on public.page_views (created_at);
+
+alter table public.page_views enable row level security;
+-- Same reasoning as above: only the service role key touches this table.
+-- visitor_id is a random anonymous id generated client-side (no PII, no IP stored).
+grant select, insert on public.page_views to service_role;

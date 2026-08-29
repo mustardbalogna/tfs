@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 interface ContactMessage {
@@ -61,9 +61,14 @@ export default function AdminDashboard() {
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="flex items-center justify-between">
         <h1 className="font-serif text-2xl text-foreground">Contact Messages</h1>
-        <Button variant="outline" onClick={handleLogout}>
-          Log out
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/admin/stats">Website Stats</Link>
+          </Button>
+          <Button variant="outline" onClick={handleLogout}>
+            Log out
+          </Button>
+        </div>
       </div>
 
       {loading && <p className="mt-6 text-muted-foreground">Loading...</p>}
@@ -89,6 +94,15 @@ export default function AdminDashboard() {
                 <span className="text-xs text-muted-foreground">
                   {new Date(m.created_at).toLocaleString()}
                 </span>
+                <Button size="sm" variant="outline" asChild>
+                  <a
+                    href={`mailto:${m.email}?subject=${encodeURIComponent(
+                      "Re: Your enquiry to Top Furniture Supplies",
+                    )}`}
+                  >
+                    Email
+                  </a>
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => markRead(m.id, !m.read)}>
                   {m.read ? "Mark unread" : "Mark read"}
                 </Button>
