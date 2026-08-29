@@ -41,7 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     email: email.trim().slice(0, 200),
     phone: typeof phone === "string" ? phone.trim().slice(0, 50) : "",
     service: typeof service === "string" ? service.trim().slice(0, 100) : "",
-    message: message.trim().slice(0, 5000),
+    message: message.trim().slice(0, 1000),
   };
 
   try {

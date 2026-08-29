@@ -11,6 +11,7 @@ const SERVICE_OPTIONS = [
 ];
 
 const EMPTY_FORM = { name: "", email: "", phone: "", service: "", message: "" };
+const MAX_LENGTHS = { name: 200, email: 200, phone: 50, message: 1000 };
 
 export default function Contact() {
   const [form, setForm] = useState(EMPTY_FORM);
@@ -75,6 +76,7 @@ export default function Contact() {
                     value={form.name}
                     onChange={handleChange}
                     required
+                    maxLength={MAX_LENGTHS.name}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     placeholder="Your name"
                   />
@@ -87,6 +89,7 @@ export default function Contact() {
                     value={form.email}
                     onChange={handleChange}
                     required
+                    maxLength={MAX_LENGTHS.email}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     placeholder="your@email.com"
                   />
@@ -99,6 +102,7 @@ export default function Contact() {
                   name="phone"
                   value={form.phone}
                   onChange={handleChange}
+                  maxLength={MAX_LENGTHS.phone}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   placeholder="Your phone number"
                 />
@@ -129,9 +133,13 @@ export default function Contact() {
                   onChange={handleChange}
                   required
                   rows={4}
+                  maxLength={MAX_LENGTHS.message}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   placeholder="Tell us about your project..."
                 ></textarea>
+                <p className="mt-1 text-right text-xs text-muted-foreground">
+                  {form.message.length}/{MAX_LENGTHS.message}
+                </p>
               </div>
               {status === "success" && (
                 <p className="text-sm text-primary">Thanks! Your message has been sent.</p>
