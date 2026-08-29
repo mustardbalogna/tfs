@@ -14,6 +14,7 @@ alter table public.messages enable row level security;
 -- No policies are defined: the server-side API uses the Supabase service role
 -- key, which bypasses RLS. This keeps the table unreachable from the browser's
 -- public anon key, so messages can only be read/written via our own API.
+grant select, insert, update, delete on public.messages to service_role;
 
 create table if not exists public.rate_limits (
   key text primary key,
@@ -23,3 +24,4 @@ create table if not exists public.rate_limits (
 
 alter table public.rate_limits enable row level security;
 -- Same reasoning as above: only the service role key touches this table.
+grant select, insert, update, delete on public.rate_limits to service_role;
