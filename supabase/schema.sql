@@ -30,12 +30,16 @@ create table if not exists public.page_views (
   id bigint generated always as identity primary key,
   path text not null,
   visitor_id text not null,
+  session_id text not null default '',
   created_at timestamptz not null default now()
 );
+
+-- Safe to re-run on an existing table created before session_id existed.
+alter table public.page_views add column if not exists session_id text not null default '';
 
 create index if not exists page_views_created_at_idx on public.page_views (created_at);
 
 alter table public.page_views enable row level security;
 -- Same reasoning as above: only the service role key touches this table.
--- visitor_id is a random anonymous id generated client-side (no PII, no IP stored).
+-- visitor_id/session_id are random anonymous ids generated client-side (no PII, no IP stored).
 grant select, insert on public.page_views to service_role;

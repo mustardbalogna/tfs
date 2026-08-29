@@ -21,7 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(204).end();
   }
 
-  const { path, visitorId } = req.body ?? {};
+  const { path, visitorId, sessionId } = req.body ?? {};
   if (
     typeof path === "string" &&
     path.trim() &&
@@ -33,6 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await supabase.from("page_views").insert({
         path: path.trim().slice(0, 300),
         visitor_id: visitorId.trim().slice(0, 100),
+        session_id: typeof sessionId === "string" ? sessionId.trim().slice(0, 100) : "",
       });
     } catch (err) {
       console.error("Failed to record page view", err);
