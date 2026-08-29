@@ -1,4 +1,4 @@
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link, NavLink } from "react-router-dom";
 import { useState } from "react";
 import "@fontsource/dm-serif-display/400.css";
 import "@fontsource/fira-sans/400.css";
@@ -28,42 +28,29 @@ function Header() {
           </span>
         </Link>
         <nav className="hidden items-center gap-6 md:flex">
-          <Link
-            to="/"
-            className="text-sm font-medium text-foreground transition-colors hover:text-primary"
-          >
-            Home
-          </Link>
-          <Link
-            to="/about"
-            className="text-sm font-medium text-foreground transition-colors hover:text-primary"
-          >
-            About
-          </Link>
-          <Link
-            to="/services"
-            className="text-sm font-medium text-foreground transition-colors hover:text-primary"
-          >
-            Services
-          </Link>
-          <Link
-            to="/categories"
-            className="text-sm font-medium text-foreground transition-colors hover:text-primary"
-          >
-            Categories
-          </Link>
-          <Link
-            to="/suburbs"
-            className="text-sm font-medium text-foreground transition-colors hover:text-primary"
-          >
-            Suburbs
-          </Link>
-          <Link
-            to="/contact"
-            className="text-sm font-medium text-foreground transition-colors hover:text-primary"
-          >
-            Contact
-          </Link>
+          {[
+            { to: "/", label: "Home" },
+            { to: "/about", label: "About" },
+            { to: "/services", label: "Services" },
+            { to: "/categories", label: "Categories" },
+            { to: "/suburbs", label: "Suburbs" },
+            { to: "/contact", label: "Contact" },
+          ].map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/"}
+              className={({ isActive }) =>
+                `text-sm font-medium transition-colors hover:text-primary ${
+                  isActive
+                    ? "text-primary border-b-2 border-primary pb-1"
+                    : "text-foreground"
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
         <MobileNav />
       </div>
@@ -93,48 +80,30 @@ function MobileNav() {
       </button>
       {open && (
         <div className="absolute right-4 top-16 z-50 w-48 rounded-lg border border-border bg-card p-2 shadow-lg">
-          <Link
-            to="/"
-            onClick={() => setOpen(false)}
-            className="block rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
-          >
-            Home
-          </Link>
-          <Link
-            to="/about"
-            onClick={() => setOpen(false)}
-            className="block rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
-          >
-            About
-          </Link>
-          <Link
-            to="/services"
-            onClick={() => setOpen(false)}
-            className="block rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
-          >
-            Services
-          </Link>
-          <Link
-            to="/categories"
-            onClick={() => setOpen(false)}
-            className="block rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
-          >
-            Categories
-          </Link>
-          <Link
-            to="/suburbs"
-            onClick={() => setOpen(false)}
-            className="block rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
-          >
-            Suburbs
-          </Link>
-          <Link
-            to="/contact"
-            onClick={() => setOpen(false)}
-            className="block rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
-          >
-            Contact
-          </Link>
+          {[
+            { to: "/", label: "Home" },
+            { to: "/about", label: "About" },
+            { to: "/services", label: "Services" },
+            { to: "/categories", label: "Categories" },
+            { to: "/suburbs", label: "Suburbs" },
+            { to: "/contact", label: "Contact" },
+          ].map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/"}
+              onClick={() => setOpen(false)}
+              className={({ isActive }) =>
+                `block rounded-md px-3 py-2 text-sm transition-colors ${
+                  isActive
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "text-foreground hover:bg-muted"
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
         </div>
       )}
     </div>
