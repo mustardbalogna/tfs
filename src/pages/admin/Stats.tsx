@@ -63,6 +63,7 @@ export default function AdminStats() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -87,6 +88,12 @@ export default function AdminStats() {
       setLoading(false);
     }
   }
+
+  const selectedDayHours = selectedDay
+    ? stats?.heatmap.find((day) => day.date === selectedDay)?.hours
+    : undefined;
+  const hourChartData =
+    selectedDayHours?.map((views, hour) => ({ hour, views })) ?? stats?.byHour ?? [];
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -142,10 +149,19 @@ export default function AdminStats() {
           </div>
 
           <div className="mt-6 rounded-xl border border-border bg-card p-6">
-            <h2 className="font-serif text-lg text-foreground">Traffic by Hour of Day</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-serif text-lg text-foreground">
+                Traffic by Hour{selectedDay ? ` — ${selectedDay}` : " of Day"}
+              </h2>
+              {selectedDay && (
+                <Button size="sm" variant="outline" onClick={() => setSelectedDay(null)}>
+                  Clear
+                </Button>
+              )}
+            </div>
             <div className="mt-4 h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.byHour}>
+                <BarChart data={hourChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="hour" tick={{ fontSize: 12 }} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
@@ -158,6 +174,9 @@ export default function AdminStats() {
 
           <div className="mt-6 rounded-xl border border-border bg-card p-6">
             <h2 className="font-serif text-lg text-foreground">Traffic by Hour, per Day</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Click a date to show its hourly breakdown above.
+            </p>
             {stats.heatmap.length === 0 ? (
               <p className="mt-4 text-sm text-muted-foreground">No page views yet.</p>
             ) : (
@@ -178,9 +197,14 @@ export default function AdminStats() {
                   <tbody>
                     {stats.heatmap.map((day) => {
                       const max = Math.max(1, ...day.hours);
+                      const isSelected = selectedDay === day.date;
                       return (
-                        <tr key={day.date}>
-                          <td className="sticky left-0 whitespace-nowrap bg-card pr-2 text-foreground">
+                        <tr
+                          key={day.date}
+                          onClick={() => setSelectedDay(isSelected ? null : day.date)}
+                          className={`cursor-pointer ${isSelected ? "bg-muted" : "hover:bg-muted/50"}`}
+                        >
+                          <td className="sticky left-0 whitespace-nowrap bg-inherit pr-2 text-foreground">
                             {day.date}
                           </td>
                           {day.hours.map((views, hour) => (
