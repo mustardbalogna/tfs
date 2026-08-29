@@ -23,19 +23,29 @@ interface StatsData {
   heatmap: { date: string; hours: number[] }[];
 }
 
-function formatPageLabel(path: string): string {
-  if (path === "/") return "Home";
-  return path
-    .replace(/^\//, "")
-    .split("/")
-    .map((segment) =>
-      segment
-        .split("-")
-        .filter(Boolean)
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" "),
-    )
-    .join(" / ");
+const CALENDAR_DAYS = 30;
+const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+
+function getLastNDates(n: number): string[] {
+  const now = new Date();
+  const dates: string[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+function buildCalendarWeeks(dates: string[]): (string | null)[][] {
+  if (dates.length === 0) return [];
+  const firstWeekday = new Date(`${dates[0]}T00:00:00Z`).getUTCDay();
+  const padded: (string | null)[] = [...Array(firstWeekday).fill(null), ...dates];
+  while (padded.length % 7 !== 0) padded.push(null);
+  const weeks: (string | null)[][] = [];
+  for (let i = 0; i < padded.length; i += 7) {
+    weeks.push(padded.slice(i, i + 7));
+  }
+  return weeks;
 }
 
 function DailyTrafficTooltip({
@@ -89,8 +99,14 @@ export default function AdminStats() {
     }
   }
 
+  const heatmapByDate = new Map((stats?.heatmap ?? []).map((day) => [day.date, day.hours]));
+  const viewsByDate = new Map((stats?.byDay ?? []).map((day) => [day.date, day.views]));
+  const calendarDates = getLastNDates(CALENDAR_DAYS);
+  const calendarWeeks = buildCalendarWeeks(calendarDates);
+  const maxDailyViews = Math.max(1, ...Array.from(viewsByDate.values()));
+
   const selectedDayHours = selectedDay
-    ? stats?.heatmap.find((day) => day.date === selectedDay)?.hours
+    ? (heatmapByDate.get(selectedDay) ?? Array.from({ length: 24 }, () => 0))
     : undefined;
   const hourChartData =
     selectedDayHours?.map((views, hour) => ({ hour, views })) ?? stats?.byHour ?? [];
@@ -173,77 +189,45 @@ export default function AdminStats() {
           </div>
 
           <div className="mt-6 rounded-xl border border-border bg-card p-6">
-            <h2 className="font-serif text-lg text-foreground">Traffic by Hour, per Day</h2>
+            <h2 className="font-serif text-lg text-foreground">Traffic Calendar</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Click a date to show its hourly breakdown above.
+              Click a day to show its hourly breakdown above.
             </p>
-            {stats.heatmap.length === 0 ? (
-              <p className="mt-4 text-sm text-muted-foreground">No page views yet.</p>
-            ) : (
-              <div className="mt-4 overflow-x-auto">
-                <table className="border-collapse text-xs">
-                  <thead>
-                    <tr>
-                      <th className="sticky left-0 bg-card pr-2 text-left font-normal text-muted-foreground">
-                        Date
-                      </th>
-                      {Array.from({ length: 24 }, (_, hour) => (
-                        <th key={hour} className="px-1 pb-1 font-normal text-muted-foreground">
-                          {hour}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.heatmap.map((day) => {
-                      const max = Math.max(1, ...day.hours);
-                      const isSelected = selectedDay === day.date;
-                      return (
-                        <tr
-                          key={day.date}
-                          onClick={() => setSelectedDay(isSelected ? null : day.date)}
-                          className={`cursor-pointer ${isSelected ? "bg-muted" : "hover:bg-muted/50"}`}
-                        >
-                          <td className="sticky left-0 whitespace-nowrap bg-inherit pr-2 text-foreground">
-                            {day.date}
-                          </td>
-                          {day.hours.map((views, hour) => (
-                            <td key={hour} className="p-0.5">
-                              <div
-                                title={`${day.date} ${hour}:00 — ${views} view${views === 1 ? "" : "s"}`}
-                                className="h-5 w-5 rounded-sm"
-                                style={{
-                                  backgroundColor:
-                                    views === 0
-                                      ? "var(--muted)"
-                                      : `rgba(37, 99, 235, ${views / max})`,
-                                }}
-                              />
-                            </td>
-                          ))}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-6 rounded-xl border border-border bg-card p-6">
-            <h2 className="font-serif text-lg text-foreground">Top Pages</h2>
-            {stats.topPages.length === 0 ? (
-              <p className="mt-4 text-sm text-muted-foreground">No page views yet.</p>
-            ) : (
-              <ul className="mt-4 space-y-2">
-                {stats.topPages.map((page) => (
-                  <li key={page.path} className="flex items-center justify-between text-sm">
-                    <span className="text-foreground">{formatPageLabel(page.path)}</span>
-                    <span className="text-muted-foreground">{page.views}</span>
-                  </li>
+            <div className="mt-4 flex gap-1">
+              <div className="flex flex-col gap-1 pr-1 text-[10px] text-muted-foreground">
+                {WEEKDAY_LABELS.map((label, i) => (
+                  <div key={i} className="flex h-4 w-4 items-center justify-center leading-none">
+                    {label}
+                  </div>
                 ))}
-              </ul>
-            )}
+              </div>
+              {calendarWeeks.map((week, weekIndex) => (
+                <div key={weekIndex} className="flex flex-col gap-1">
+                  {week.map((date, dayIndex) => {
+                    if (!date) return <div key={dayIndex} className="h-4 w-4" />;
+                    const views = viewsByDate.get(date) ?? 0;
+                    const isSelected = selectedDay === date;
+                    return (
+                      <button
+                        key={date}
+                        type="button"
+                        title={`${date} — ${views} view${views === 1 ? "" : "s"}`}
+                        onClick={() => setSelectedDay(isSelected ? null : date)}
+                        className={`h-4 w-4 rounded-sm ${
+                          isSelected ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : ""
+                        }`}
+                        style={{
+                          backgroundColor:
+                            views === 0
+                              ? "var(--muted)"
+                              : `rgba(37, 99, 235, ${Math.max(0.15, views / maxDailyViews)})`,
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}
