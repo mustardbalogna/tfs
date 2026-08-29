@@ -1,4 +1,53 @@
+import { useState } from "react";
+
+const SERVICE_OPTIONS = [
+  { value: "cabinet-making", label: "Cabinet Making" },
+  { value: "custom-furniture", label: "Custom Furniture" },
+  { value: "joinery", label: "Joinery" },
+  { value: "wardrobes", label: "Wardrobes" },
+  { value: "outdoor-furniture", label: "Outdoor Furniture" },
+  { value: "office-fitouts", label: "Office Fitouts" },
+  { value: "other", label: "Other" },
+];
+
+const EMPTY_FORM = { name: "", email: "", phone: "", service: "", message: "" };
+
 export default function Contact() {
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [error, setError] = useState("");
+
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+  ) {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus("submitting");
+    setError("");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to send your message. Please try again.");
+      }
+      setForm(EMPTY_FORM);
+      setStatus("success");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to send your message. Please try again.",
+      );
+      setStatus("error");
+    }
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
       <div className="text-center">
@@ -16,12 +65,16 @@ export default function Contact() {
         <div className="space-y-8">
           <div className="rounded-xl border border-border bg-card p-8">
             <h2 className="font-serif text-2xl text-foreground">Send us a message</h2>
-            <div className="mt-6 space-y-4">
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">Name</label>
                   <input
                     type="text"
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    required
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     placeholder="Your name"
                   />
@@ -30,6 +83,10 @@ export default function Contact() {
                   <label className="block text-sm font-medium text-foreground mb-1">Email</label>
                   <input
                     type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    required
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     placeholder="your@email.com"
                   />
@@ -39,6 +96,9 @@ export default function Contact() {
                 <label className="block text-sm font-medium text-foreground mb-1">Phone</label>
                 <input
                   type="tel"
+                  name="phone"
+                  value={form.phone}
+                  onChange={handleChange}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   placeholder="Your phone number"
                 />
@@ -47,32 +107,44 @@ export default function Contact() {
                 <label className="block text-sm font-medium text-foreground mb-1">
                   Service Interest
                 </label>
-                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <select
+                  name="service"
+                  value={form.service}
+                  onChange={handleChange}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
                   <option value="">Select a service</option>
-                  <option value="cabinet-making">Cabinet Making</option>
-                  <option value="custom-furniture">Custom Furniture</option>
-                  <option value="joinery">Joinery</option>
-                  <option value="wardrobes">Wardrobes</option>
-                  <option value="outdoor-furniture">Outdoor Furniture</option>
-                  <option value="office-fitouts">Office Fitouts</option>
-                  <option value="other">Other</option>
+                  {SERVICE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">Message</label>
                 <textarea
+                  name="message"
+                  value={form.message}
+                  onChange={handleChange}
+                  required
                   rows={4}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   placeholder="Tell us about your project..."
                 ></textarea>
               </div>
+              {status === "success" && (
+                <p className="text-sm text-primary">Thanks! Your message has been sent.</p>
+              )}
+              {status === "error" && <p className="text-sm text-destructive">{error}</p>}
               <button
-                type="button"
-                className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                type="submit"
+                disabled={status === "submitting"}
+                className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Send Enquiry
+                {status === "submitting" ? "Sending..." : "Send Enquiry"}
               </button>
-            </div>
+            </form>
           </div>
         </div>
 

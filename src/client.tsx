@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import About from "./pages/About";
@@ -7,6 +8,8 @@ import Services from "./pages/Services";
 import Categories from "./pages/Categories";
 import Suburbs from "./pages/Suburbs";
 import Contact from "./pages/Contact";
+import AdminLogin from "./pages/admin/Login";
+import AdminDashboard from "./pages/admin/Dashboard";
 import "./styles.css";
 
 const rootElement = document.getElementById("root");
@@ -23,6 +26,9 @@ createRoot(rootElement).render(
         <Route path="suburbs" element={<Suburbs />} />
         <Route path="contact" element={<Contact />} />
       </Route>
+      <Route path="admin/login" element={<AdminLogin />} />
+      <Route path="admin" element={<AdminDashboard />} />
     </Routes>
+    <Analytics />
   </BrowserRouter>,
 );
