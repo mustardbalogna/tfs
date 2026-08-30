@@ -9,6 +9,24 @@ import { getSupabaseClient } from "./_lib/supabase.js";
 
 const DAYS = 30;
 
+function parseDateInTimeZone(
+  date: Date,
+  dtf: Intl.DateTimeFormat,
+): { dayKey: string; hour: number } {
+  const parts = dtf.formatToParts(date);
+  let year = "";
+  let month = "";
+  let day = "";
+  let hour = 0;
+  for (const part of parts) {
+    if (part.type === "year") year = part.value;
+    else if (part.type === "month") month = part.value;
+    else if (part.type === "day") day = part.value;
+    else if (part.type === "hour") hour = parseInt(part.value, 10);
+  }
+  return { dayKey: `${year}-${month}-${day}`, hour: hour % 24 };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!verifySessionToken(readSessionCookie(req.headers.cookie))) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -21,6 +39,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Method not allowed" });
   }
+
+  const timeZoneParam = typeof req.query?.tz === "string" ? req.query.tz : "UTC";
+  let timeZone = "UTC";
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: timeZoneParam });
+    timeZone = timeZoneParam;
+  } catch {
+    timeZone = "UTC";
+  }
+
+  const dtf = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "numeric",
+    hourCycle: "h23",
+  });
 
   const since = new Date(Date.now() - DAYS * 24 * 60 * 60 * 1000).toISOString();
 
@@ -50,10 +86,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   for (const row of rows) {
     const date = new Date(row.created_at);
-    const hour = date.getHours();
-    byHour[hour].views += 1;
+    if (isNaN(date.getTime())) continue;
 
-    const dayKey = date.toISOString().slice(0, 10);
+    const { dayKey, hour } = parseDateInTimeZone(date, dtf);
+    if (hour >= 0 && hour < 24) {
+      byHour[hour].views += 1;
+    }
+
     const day = byDayMap.get(dayKey) ?? { views: 0, visitors: new Set(), sessions: new Set() };
     day.views += 1;
     day.visitors.add(row.visitor_id);
@@ -63,7 +102,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     byPathMap.set(row.path, (byPathMap.get(row.path) ?? 0) + 1);
 
     const dayHours = heatmapMap.get(dayKey) ?? Array.from({ length: 24 }, () => 0);
-    dayHours[hour] += 1;
+    if (hour >= 0 && hour < 24) {
+      dayHours[hour] += 1;
+    }
     heatmapMap.set(dayKey, dayHours);
   }
 

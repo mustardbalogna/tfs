@@ -26,19 +26,27 @@ interface StatsData {
 const CALENDAR_DAYS = 30;
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
+function formatLocalDate(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function getLastNDates(n: number): string[] {
   const now = new Date();
   const dates: string[] = [];
   for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
-    dates.push(d.toISOString().slice(0, 10));
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    dates.push(formatLocalDate(d));
   }
   return dates;
 }
 
 function buildCalendarWeeks(dates: string[]): (string | null)[][] {
   if (dates.length === 0) return [];
-  const firstWeekday = new Date(`${dates[0]}T00:00:00Z`).getUTCDay();
+  const [year, month, day] = dates[0].split("-").map(Number);
+  const firstWeekday = new Date(year, month - 1, day).getDay();
   const padded: (string | null)[] = [...Array(firstWeekday).fill(null), ...dates];
   while (padded.length % 7 !== 0) padded.push(null);
   const weeks: (string | null)[][] = [];
@@ -46,6 +54,35 @@ function buildCalendarWeeks(dates: string[]): (string | null)[][] {
     weeks.push(padded.slice(i, i + 7));
   }
   return weeks;
+}
+
+function formatHour(hour: number): string {
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  return `${displayHour} ${period}`;
+}
+
+function HourlyTrafficTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { value: number }[];
+  label?: number;
+}) {
+  if (!active || !payload?.length || label === undefined) return null;
+  const hour = Number(label);
+  const displayHour = formatHour(hour);
+  const nextHour = formatHour((hour + 1) % 24);
+  return (
+    <div className="rounded-md border border-border bg-card p-3 text-xs shadow-sm">
+      <p className="font-medium text-foreground">
+        {displayHour} – {nextHour} ({String(hour).padStart(2, "0")}:00)
+      </p>
+      <p className="mt-1 text-muted-foreground">Views: {payload[0].value}</p>
+    </div>
+  );
 }
 
 function DailyTrafficTooltip({
@@ -85,7 +122,8 @@ export default function AdminStats() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/stats");
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const res = await fetch(`/api/stats?tz=${encodeURIComponent(tz)}`);
       if (res.status === 401) {
         navigate("/admin/login");
         return;
@@ -179,9 +217,14 @@ export default function AdminStats() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={hourChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="hour" tick={{ fontSize: 12 }} />
+                  <XAxis
+                    dataKey="hour"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(h: number) => (h % 3 === 0 ? formatHour(h) : "")}
+                    interval={0}
+                  />
                   <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                  <Tooltip />
+                  <Tooltip content={<HourlyTrafficTooltip />} />
                   <Bar dataKey="views" fill="#2563eb" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
