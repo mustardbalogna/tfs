@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import type { Category } from "@/lib/categories";
+import Lightbox from "@/components/Lightbox";
 
 export default function Categories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [lightbox, setLightbox] = useState<{ categoryId: string; index: number } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -20,6 +22,8 @@ export default function Categories() {
       }
     })();
   }, []);
+
+  const lightboxCategory = categories.find((c) => c.id === lightbox?.categoryId);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
@@ -48,11 +52,23 @@ export default function Categories() {
             className="overflow-hidden rounded-lg border border-border bg-card transition-shadow hover:shadow-md"
           >
             {cat.images[0] ? (
-              <img
-                src={cat.images[0].url}
-                alt={cat.heading}
-                className="aspect-video w-full object-cover"
-              />
+              <button
+                type="button"
+                onClick={() => setLightbox({ categoryId: cat.id, index: 0 })}
+                className="group relative block w-full cursor-pointer"
+                aria-label={`View photos for ${cat.heading}`}
+              >
+                <img
+                  src={cat.images[0].url}
+                  alt={cat.heading}
+                  className="aspect-video w-full object-cover transition-transform group-hover:scale-[1.02]"
+                />
+                {cat.images.length > 1 && (
+                  <span className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white">
+                    +{cat.images.length - 1} more
+                  </span>
+                )}
+              </button>
             ) : (
               <div className="flex aspect-video w-full items-center justify-center bg-primary/10">
                 <span className="h-2 w-2 rounded-full bg-primary" />
@@ -67,6 +83,17 @@ export default function Categories() {
           </div>
         ))}
       </div>
+
+      {lightbox && lightboxCategory && (
+        <Lightbox
+          images={lightboxCategory.images}
+          index={lightbox.index}
+          onIndexChange={(index) => setLightbox({ categoryId: lightboxCategory.id, index })}
+          onClose={() => setLightbox(null)}
+        />
+      )}
     </div>
   );
 }
+
+
