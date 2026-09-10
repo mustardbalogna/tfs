@@ -63,6 +63,9 @@ export default function AdminDashboard() {
         <h1 className="font-serif text-2xl text-foreground">Contact Messages</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" asChild>
+            <Link to="/admin/categories">Manage Categories</Link>
+          </Button>
+          <Button variant="outline" asChild>
             <Link to="/admin/stats">Website Stats</Link>
           </Button>
           <Button variant="outline" onClick={handleLogout}>

@@ -12,6 +12,8 @@ import Contact from "./pages/Contact";
 import AdminLogin from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminStats from "./pages/admin/Stats";
+import AdminCategories from "./pages/admin/Categories";
+import AdminCategoryForm from "./pages/admin/CategoryForm";
 import "./styles.css";
 
 const rootElement = document.getElementById("root");
@@ -32,6 +34,9 @@ createRoot(rootElement).render(
       <Route path="admin/login" element={<AdminLogin />} />
       <Route path="admin" element={<AdminDashboard />} />
       <Route path="admin/stats" element={<AdminStats />} />
+      <Route path="admin/categories" element={<AdminCategories />} />
+      <Route path="admin/categories/new" element={<AdminCategoryForm />} />
+      <Route path="admin/categories/:id/edit" element={<AdminCategoryForm />} />
     </Routes>
     <Analytics />
   </BrowserRouter>,
