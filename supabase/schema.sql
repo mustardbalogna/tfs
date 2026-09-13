@@ -128,3 +128,24 @@ values
   ('Built In Wardrobe Builders', 'Built In Wardrobe Builders', 'Built-in wardrobe building services.'),
   ('Shelving & Storage Solutions', 'Shelving & Storage Solutions', 'Shelving and storage solutions.')
 on conflict (lower(name)) do nothing;
+
+-- Site Content CMS ------------------------------------------------------
+-- Single-row table holding all editable marketing copy (home/about/services/
+-- contact page text) as JSON, edited from /admin/content. The client falls
+-- back to hard-coded defaults if this row doesn't exist yet.
+create table if not exists public.site_content (
+  id text primary key,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists site_content_set_updated_at on public.site_content;
+create trigger site_content_set_updated_at
+  before update on public.site_content
+  for each row execute function public.set_updated_at();
+
+alter table public.site_content enable row level security;
+-- Same reasoning as above: only the service role key touches this table.
+-- GET (public read) also goes through our /api route using service role, so
+-- no anon/public RLS policy is needed or granted here.
+grant select, insert, update, delete on public.site_content to service_role;

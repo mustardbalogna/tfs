@@ -33,7 +33,6 @@ function Header() {
             { to: "/about", label: "About" },
             { to: "/services", label: "Services" },
             { to: "/categories", label: "Categories" },
-            { to: "/suburbs", label: "Suburbs" },
             { to: "/contact", label: "Contact" },
           ].map((item) => (
             <NavLink
@@ -83,7 +82,6 @@ function MobileNav() {
             { to: "/about", label: "About" },
             { to: "/services", label: "Services" },
             { to: "/categories", label: "Categories" },
-            { to: "/suburbs", label: "Suburbs" },
             { to: "/contact", label: "Contact" },
           ].map((item) => (
             <NavLink

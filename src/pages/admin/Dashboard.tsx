@@ -66,6 +66,9 @@ export default function AdminDashboard() {
             <Link to="/admin/categories">Manage Categories</Link>
           </Button>
           <Button variant="outline" asChild>
+            <Link to="/admin/content">Site Content</Link>
+          </Button>
+          <Button variant="outline" asChild>
             <Link to="/admin/stats">Website Stats</Link>
           </Button>
           <Button variant="outline" onClick={handleLogout}>

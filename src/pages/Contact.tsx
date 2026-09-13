@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { DEFAULT_SITE_CONTENT, fetchSiteContent, type SiteContent } from "@/lib/siteContent";
 
 const SERVICE_OPTIONS = [
   { value: "cabinet-making", label: "Cabinet Making" },
@@ -17,6 +18,11 @@ export default function Contact() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [error, setError] = useState("");
+  const [content, setContent] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
+
+  useEffect(() => {
+    fetchSiteContent().then(setContent);
+  }, []);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
@@ -56,10 +62,7 @@ export default function Contact() {
         <h1 className="mt-3 font-serif text-4xl tracking-tight text-foreground sm:text-5xl">
           Contact Us
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-          For all enquiries, contact us today. We'd welcome the opportunity to earn your trust and
-          deliver the best service in the industry.
-        </p>
+        <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">{content.contact.intro}</p>
       </div>
 
       <div className="mt-14 grid gap-8 lg:grid-cols-2">
@@ -160,25 +163,19 @@ export default function Contact() {
           <div className="rounded-xl border border-border bg-card p-8">
             <h3 className="font-serif text-xl text-foreground">Service Areas</h3>
             <ul className="mt-4 space-y-2 text-muted-foreground">
-              <li>Condell Park, NSW</li>
-              <li>Bankstown, NSW</li>
-              <li>Greenacre, NSW</li>
-              <li>Yagoona, NSW</li>
-              <li>Surrounding Sydney suburbs</li>
+              {content.contact.serviceAreas.map((area) => (
+                <li key={area}>{area}</li>
+              ))}
             </ul>
           </div>
           <div className="rounded-xl border border-border bg-card p-8">
             <h3 className="font-serif text-xl text-foreground">Business Hours</h3>
             <ul className="mt-4 space-y-2 text-muted-foreground">
-              <li className="flex justify-between">
-                <span>Monday – Friday</span> <span>8:00 AM – 5:00 PM</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Saturday</span> <span>9:00 AM – 2:00 PM</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Sunday</span> <span>Closed</span>
-              </li>
+              {content.contact.hours.map((row) => (
+                <li key={row.label} className="flex justify-between">
+                  <span>{row.label}</span> <span>{row.value}</span>
+                </li>
+              ))}
             </ul>
           </div>
         </div>

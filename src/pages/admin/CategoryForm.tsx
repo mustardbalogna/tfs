@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useRequireAdmin } from "@/hooks/useRequireAdmin";
 import { CATEGORY_LIMITS, uploadCategoryImage, type Category } from "@/lib/categories";
+import { invalidateCategoriesCache } from "@/lib/categoriesCache";
 import CategoryImageManager from "@/components/admin/CategoryImageManager";
 import PendingImagePicker, { type PendingImage } from "@/components/admin/PendingImagePicker";
 
@@ -115,6 +116,7 @@ export default function AdminCategoryForm() {
       }
       const data = await res.json();
       const savedId: string = data.category.id;
+      invalidateCategoriesCache();
 
       if (!isEdit && pendingImages.length > 0) {
         const validPending = pendingImages.filter((p) => !p.error);

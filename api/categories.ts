@@ -87,6 +87,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         })),
     }));
 
+    // Categories change rarely; let browsers/CDN reuse the response briefly
+    // instead of every page load hitting Supabase.
+    res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=300");
     return res.status(200).json({ categories });
   }
 

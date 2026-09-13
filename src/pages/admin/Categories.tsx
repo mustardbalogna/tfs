@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useRequireAdmin } from "@/hooks/useRequireAdmin";
 import type { Category } from "@/lib/categories";
+import { invalidateCategoriesCache } from "@/lib/categoriesCache";
 
 export default function AdminCategories() {
   const { checking } = useRequireAdmin();
@@ -60,6 +61,7 @@ export default function AdminCategories() {
         throw new Error(data.error || "Failed to delete category");
       }
       setCategories((prev) => prev.filter((c) => c.id !== id));
+      invalidateCategoriesCache();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete category");
     } finally {

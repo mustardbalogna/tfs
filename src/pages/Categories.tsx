@@ -1,20 +1,19 @@
 import { useEffect, useState } from "react";
 import type { Category } from "@/lib/categories";
+import { fetchCategoriesCached, getCachedCategories } from "@/lib/categoriesCache";
 import Lightbox from "@/components/Lightbox";
 
 export default function Categories() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<Category[]>(() => getCachedCategories() ?? []);
+  const [loading, setLoading] = useState(() => getCachedCategories() === null);
   const [error, setError] = useState("");
   const [lightbox, setLightbox] = useState<{ categoryId: string; index: number } | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/categories");
-        if (!res.ok) throw new Error("Failed to load categories");
-        const data = await res.json();
-        setCategories(data.categories ?? []);
+        const data = await fetchCategoriesCached();
+        setCategories(data);
       } catch {
         setError("Unable to load categories right now. Please try again later.");
       } finally {
@@ -32,11 +31,8 @@ export default function Categories() {
           What We Cover
         </p>
         <h1 className="mt-3 font-serif text-4xl tracking-tight text-foreground sm:text-5xl">
-          Categories Previously Serviced
+          Categories We Service
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-          Please note some of these categories may require a trade licence.
-        </p>
       </div>
 
       {loading && <p className="mt-14 text-center text-muted-foreground">Loading...</p>}
@@ -95,5 +91,3 @@ export default function Categories() {
     </div>
   );
 }
-
-

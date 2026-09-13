@@ -7,13 +7,13 @@ import Home from "./pages/Home";
 import About from "./pages/About";
 import Services from "./pages/Services";
 import Categories from "./pages/Categories";
-import Suburbs from "./pages/Suburbs";
 import Contact from "./pages/Contact";
 import AdminLogin from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminStats from "./pages/admin/Stats";
 import AdminCategories from "./pages/admin/Categories";
 import AdminCategoryForm from "./pages/admin/CategoryForm";
+import AdminContent from "./pages/admin/Content";
 import "./styles.css";
 
 const rootElement = document.getElementById("root");
@@ -28,7 +28,6 @@ createRoot(rootElement).render(
         <Route path="about" element={<About />} />
         <Route path="services" element={<Services />} />
         <Route path="categories" element={<Categories />} />
-        <Route path="suburbs" element={<Suburbs />} />
         <Route path="contact" element={<Contact />} />
       </Route>
       <Route path="admin/login" element={<AdminLogin />} />
@@ -37,6 +36,7 @@ createRoot(rootElement).render(
       <Route path="admin/categories" element={<AdminCategories />} />
       <Route path="admin/categories/new" element={<AdminCategoryForm />} />
       <Route path="admin/categories/:id/edit" element={<AdminCategoryForm />} />
+      <Route path="admin/content" element={<AdminContent />} />
     </Routes>
     <Analytics />
   </BrowserRouter>,
