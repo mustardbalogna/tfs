@@ -149,3 +149,11 @@ alter table public.site_content enable row level security;
 -- GET (public read) also goes through our /api route using service role, so
 -- no anon/public RLS policy is needed or granted here.
 grant select, insert, update, delete on public.site_content to service_role;
+
+-- Site media (visual editor images) --------------------------------------
+-- Storage: create a second bucket named "site-media" via the Supabase
+-- dashboard (Storage > New bucket) and mark it Public. It holds hero
+-- backgrounds, card photos and gallery images placed on pages from
+-- /admin/editor. Uploads, listing and deletes go through /api/media using the
+-- service role key (admin session required), so no storage policies are needed.
+-- The public URLs of these objects are what gets stored inside site_content.

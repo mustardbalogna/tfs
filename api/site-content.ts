@@ -5,7 +5,7 @@ import { checkRateLimit, getClientIp } from "./_lib/rateLimit.js";
 
 const ROW_ID = "default";
 const MAX_CONTENT_CHARS = 100_000;
-const MAX_DEPTH = 8;
+const MAX_DEPTH = 10;
 const MAX_STRING = 5_000;
 const MAX_ARRAY = 100;
 const MAX_KEYS = 100;

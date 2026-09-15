@@ -1,5 +1,5 @@
-import PageSections from "@/components/site/PageSections";
+import PageBlocks from "@/components/site/PageBlocks";
 
 export default function Categories() {
-  return <PageSections page="categories" />;
+  return <PageBlocks page="categories" />;
 }

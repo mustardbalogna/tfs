@@ -1,5 +1,5 @@
-import PageSections from "@/components/site/PageSections";
+import PageBlocks from "@/components/site/PageBlocks";
 
 export default function About() {
-  return <PageSections page="about" />;
+  return <PageBlocks page="about" />;
 }

@@ -1,5 +1,5 @@
-import PageSections from "@/components/site/PageSections";
+import PageBlocks from "@/components/site/PageBlocks";
 
 export default function Services() {
-  return <PageSections page="services" />;
+  return <PageBlocks page="services" />;
 }

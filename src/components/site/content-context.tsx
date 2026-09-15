@@ -14,12 +14,19 @@ import {
  */
 export interface EditorApi {
   update: (path: string, value: unknown) => void;
-  /** Section identity: "home:about" */
-  selectedSection: string | null;
-  selectSection: (key: string | null, options?: { openPanel?: boolean }) => void;
-  moveSection: (page: PageKey, id: string, direction: -1 | 1) => void;
-  toggleSection: (page: PageKey, id: string) => void;
-  /** Path of the list currently showing an icon picker (e.g. "home.categories.items.2") */
+  /** Move an element within any array in the content (used by drag & drop and arrows). */
+  reorder: (listPath: string, from: number, to: number) => void;
+  /** Selected block id */
+  selectedBlock: string | null;
+  selectBlock: (id: string | null, options?: { openPanel?: boolean }) => void;
+  toggleBlock: (page: PageKey, id: string) => void;
+  removeBlock: (page: PageKey, id: string) => void;
+  duplicateBlock: (page: PageKey, id: string) => void;
+  /** Open the block library to insert a new section at `index` on `page`. */
+  openLibrary: (page: PageKey, index: number) => void;
+  /** Open the media picker; the chosen image is written to `path` as an ImageRef. */
+  pickImage: (path: string) => void;
+  /** Path of the item currently showing an icon picker (e.g. "pages.home.1.props.items.2") */
   iconPickerPath: string | null;
   setIconPickerPath: (path: string | null) => void;
 }

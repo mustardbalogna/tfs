@@ -9,25 +9,28 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
+  Copy,
   Eye,
   EyeOff,
+  GripHorizontal,
+  GripVertical,
+  ImagePlus,
   Plus,
+  Replace,
   Settings2,
+  Trash2,
   X,
+  ZoomIn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getAtPath, type PageKey } from "@/lib/siteContent";
+import { getAtPath, type Block, type ImageRef, type PageKey } from "@/lib/siteContent";
+import Lightbox from "@/components/Lightbox";
 import { useEditor, useSiteContent } from "./content-context";
 import { getIcon, ICON_NAMES } from "./icons";
 
 // ---------------------------------------------------------------------------
-// EditableText — renders plain text on the public site; inside the admin
-// editor it becomes a click-to-edit contentEditable that keeps the exact same
-// tag/classes so the preview is a true mirror of the live page.
+// EditableText — plain text on the public site; click-to-edit in the editor,
+// keeping the exact same tag/classes so the preview mirrors the live page.
 // ---------------------------------------------------------------------------
 
 interface EditableTextProps {
@@ -99,8 +102,6 @@ function EditableTextField({
   }, [value]);
 
   function readText(el: HTMLElement): string {
-    // innerText turns <br>/<div> line breaks into "\n"; strip the trailing one
-    // browsers add after a final <br>.
     return el.innerText.replace(/\n$/, "");
   }
 
@@ -122,7 +123,6 @@ function EditableTextField({
       editingRef.current = false;
       const next = readText(e.currentTarget);
       if (next !== value) onChange(next);
-      // Normalise any <div>/<br> soup the browser left behind.
       e.currentTarget.textContent = next;
     },
     onInput: (e: React.FormEvent<HTMLElement>) => {
@@ -153,43 +153,46 @@ function EditableTextField({
 }
 
 // ---------------------------------------------------------------------------
-// Section — a page section that can be reordered / hidden from the editor.
+// BlockSection — wraps every block. Public: a plain <section>. Editor: adds
+// selection outline, drag handle, hide/duplicate/delete and a settings button.
 // ---------------------------------------------------------------------------
 
-interface SectionProps {
+interface BlockSectionProps {
   page: PageKey;
-  id: string;
+  block: Block;
   label: string;
   className?: string;
   children: ReactNode;
 }
 
-export function Section({ page, id, label, className, children }: SectionProps) {
-  const content = useSiteContent();
+export function BlockSection({ page, block, label, className, children }: BlockSectionProps) {
   const editor = useEditor();
-  const sections = content[page].sections as { id: string; visible: boolean }[];
-  const index = sections.findIndex((s) => s.id === id);
-  const config = sections[index];
-  const visible = config?.visible ?? true;
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const t = setTimeout(() => setConfirmDelete(false), 3000);
+    return () => clearTimeout(t);
+  }, [confirmDelete]);
 
   if (!editor) {
-    if (!visible) return null;
+    if (!block.visible) return null;
     return <section className={className}>{children}</section>;
   }
 
-  const key = `${page}:${id}`;
-  const selected = editor.selectedSection === key;
+  const selected = editor.selectedBlock === block.id;
 
   return (
     <section
-      data-section={key}
+      data-block={block.id}
+      data-sortable-item
       className={cn("tfs-section group/section relative", className, selected && "tfs-selected")}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest("[data-editor-ui]")) return;
-        editor.selectSection(key);
+        editor.selectBlock(block.id);
       }}
     >
-      {!visible && (
+      {!block.visible && (
         <div className="tfs-hidden-overlay pointer-events-none absolute inset-0 z-10 flex items-start justify-center pt-14">
           <span className="rounded-full bg-foreground/80 px-3 py-1 text-xs font-medium text-background shadow">
             Hidden on the live site
@@ -199,45 +202,65 @@ export function Section({ page, id, label, className, children }: SectionProps) 
       <div
         data-editor-ui
         className={cn(
-          "tfs-section-toolbar absolute right-3 top-3 z-20 flex items-center gap-0.5 rounded-lg border border-border bg-card/95 p-1 text-foreground shadow-md backdrop-blur transition-opacity",
+          "absolute right-3 top-3 z-20 flex items-center gap-0.5 rounded-lg border border-border bg-card/95 p-1 text-foreground shadow-md backdrop-blur transition-opacity",
           selected ? "opacity-100" : "opacity-0 group-hover/section:opacity-100",
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="px-2 text-xs font-medium">{label}</span>
-        <ToolbarButton
-          title="Move up"
-          disabled={index <= 0}
-          onClick={() => editor.moveSection(page, id, -1)}
+        <button
+          type="button"
+          data-editor-ui
+          data-drag-handle
+          title="Drag to reorder"
+          aria-label="Drag to reorder section"
+          className="flex h-7 cursor-grab items-center gap-1.5 rounded-md px-2 text-xs font-medium hover:bg-muted active:cursor-grabbing"
         >
-          <ArrowUp className="h-3.5 w-3.5" />
+          <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+          {label}
+        </button>
+        <ToolbarButton
+          title={block.visible ? "Hide section" : "Show section"}
+          onClick={() => editor.toggleBlock(page, block.id)}
+        >
+          {block.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
         </ToolbarButton>
         <ToolbarButton
-          title="Move down"
-          disabled={index >= sections.length - 1}
-          onClick={() => editor.moveSection(page, id, 1)}
+          title="Duplicate section"
+          onClick={() => editor.duplicateBlock(page, block.id)}
         >
-          <ArrowDown className="h-3.5 w-3.5" />
+          <Copy className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton
-          title={visible ? "Hide section" : "Show section"}
-          onClick={() => editor.toggleSection(page, id)}
-        >
-          {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-        </ToolbarButton>
+        {confirmDelete ? (
+          <button
+            type="button"
+            data-editor-ui
+            onClick={() => editor.removeBlock(page, block.id)}
+            className="h-7 rounded-md bg-destructive px-2 text-xs font-medium text-destructive-foreground"
+          >
+            Delete?
+          </button>
+        ) : (
+          <ToolbarButton
+            title="Delete section"
+            onClick={() => setConfirmDelete(true)}
+            className="text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </ToolbarButton>
+        )}
         <ToolbarButton
           title="Section settings"
-          onClick={() => editor.selectSection(key, { openPanel: true })}
+          onClick={() => editor.selectBlock(block.id, { openPanel: true })}
         >
           <Settings2 className="h-3.5 w-3.5" />
         </ToolbarButton>
       </div>
-      <div className={cn(!visible && "opacity-40 grayscale")}>{children}</div>
+      <div className={cn(!block.visible && "opacity-40 grayscale")}>{children}</div>
     </section>
   );
 }
 
-function ToolbarButton({
+export function ToolbarButton({
   title,
   disabled,
   onClick,
@@ -269,18 +292,41 @@ function ToolbarButton({
 }
 
 // ---------------------------------------------------------------------------
-// Lists — remove / reorder / add items directly in the preview.
+// Lists — drag to reorder, remove, add.
 // ---------------------------------------------------------------------------
 
+interface SortableListProps {
+  listPath: string;
+  axis?: "y" | "xy";
+  as?: ElementType;
+  className?: string;
+  children: ReactNode;
+}
+
+/** Container for ListItems; carries the data attributes the drag manager needs. */
+export function SortableList({
+  listPath,
+  axis = "xy",
+  as = "div",
+  className,
+  children,
+}: SortableListProps) {
+  const editor = useEditor();
+  return createElement(
+    as,
+    editor ? { className, "data-sortable": listPath, "data-sortable-axis": axis } : { className },
+    children,
+  );
+}
+
 interface ListItemProps {
-  /** Path to the array, e.g. "home.categories.items" */
   listPath: string;
   index: number;
   as?: ElementType;
   className?: string;
   children: ReactNode;
-  /** Layout of the move buttons: horizontal for grids, vertical for stacked lists */
-  direction?: "row" | "column";
+  /** Where the hover controls sit; "inside" keeps them within the item bounds (for pills/rows). */
+  controls?: "corner" | "inside";
 }
 
 export function ListItem({
@@ -289,24 +335,15 @@ export function ListItem({
   as = "div",
   className,
   children,
-  direction = "row",
+  controls = "corner",
 }: ListItemProps) {
   const content = useSiteContent();
   const editor = useEditor();
-  const list = getAtPath(content, listPath);
-  const count = Array.isArray(list) ? list.length : 0;
 
   if (!editor) return createElement(as, { className }, children);
 
-  function move(dir: -1 | 1) {
-    if (!Array.isArray(list)) return;
-    const target = index + dir;
-    if (target < 0 || target >= list.length) return;
-    const next = list.slice();
-    [next[index], next[target]] = [next[target], next[index]];
-    editor!.update(listPath, next);
-  }
   function remove() {
+    const list = getAtPath(content, listPath);
     if (!Array.isArray(list)) return;
     editor!.update(
       listPath,
@@ -314,36 +351,30 @@ export function ListItem({
     );
   }
 
-  const Prev = direction === "row" ? ArrowLeft : ArrowUp;
-  const Next = direction === "row" ? ArrowRight : ArrowDown;
-
   return createElement(
     as,
-    { className: cn("tfs-list-item group/item relative", className) },
+    { className: cn("tfs-list-item group/item relative", className), "data-sortable-item": "" },
     children,
     <div
       data-editor-ui
-      className="absolute -right-2 -top-2 z-10 flex items-center gap-0.5 rounded-md border border-border bg-card p-0.5 opacity-0 shadow-sm transition-opacity group-hover/item:opacity-100 focus-within:opacity-100"
+      className={cn(
+        "absolute z-10 flex items-center gap-0.5 rounded-md border border-border bg-card p-0.5 opacity-0 shadow-sm transition-opacity group-hover/item:opacity-100 focus-within:opacity-100",
+        controls === "corner" ? "-right-2 -top-2" : "right-1 top-1/2 -translate-y-1/2",
+      )}
       onClick={(e) => e.stopPropagation()}
     >
-      <ToolbarButton
-        title="Move earlier"
-        disabled={index === 0}
-        onClick={() => move(-1)}
-        className="h-6 w-6"
+      <button
+        type="button"
+        data-editor-ui
+        data-drag-handle
+        title="Drag to reorder"
+        aria-label="Drag to reorder"
+        className="flex h-6 w-6 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
       >
-        <Prev className="h-3 w-3" />
-      </ToolbarButton>
+        <GripHorizontal className="h-3 w-3" />
+      </button>
       <ToolbarButton
-        title="Move later"
-        disabled={index >= count - 1}
-        onClick={() => move(1)}
-        className="h-6 w-6"
-      >
-        <Next className="h-3 w-3" />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Remove item"
+        title="Remove"
         onClick={remove}
         className="h-6 w-6 text-destructive hover:bg-destructive/10"
       >
@@ -394,6 +425,155 @@ export function AddItem({
 }
 
 // ---------------------------------------------------------------------------
+// EditableImage — shows an uploaded image (click to enlarge on the live site);
+// in the editor offers add / replace / remove via the media library.
+// ---------------------------------------------------------------------------
+
+interface EditableImageProps {
+  /** Path to the ImageRef | null value */
+  path: string;
+  image: ImageRef | null;
+  className?: string;
+  imgClassName?: string;
+  /** Visitors can click to open a lightbox */
+  zoomable?: boolean;
+  /** Called instead of the built-in lightbox (galleries share one) */
+  onZoom?: () => void;
+  /** Rendered when there is no image on the public site (e.g. a fallback asset) */
+  fallback?: ReactNode;
+  /** Hide the "Add image" placeholder in the editor when empty */
+  optional?: boolean;
+  placeholderLabel?: string;
+}
+
+export function EditableImage({
+  path,
+  image,
+  className,
+  imgClassName,
+  zoomable = true,
+  onZoom,
+  fallback = null,
+  optional = false,
+  placeholderLabel = "Add image",
+}: EditableImageProps) {
+  const editor = useEditor();
+  const [open, setOpen] = useState(false);
+
+  if (!editor) {
+    if (!image) return <>{fallback}</>;
+    const img = (
+      <img
+        src={image.url}
+        alt={image.alt}
+        loading="lazy"
+        className={cn("h-full w-full object-cover", imgClassName)}
+      />
+    );
+    if (!zoomable && !onZoom) return <div className={className}>{img}</div>;
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => (onZoom ? onZoom() : setOpen(true))}
+          className={cn("group/img relative block cursor-zoom-in overflow-hidden", className)}
+          aria-label={image.alt ? `Enlarge image: ${image.alt}` : "Enlarge image"}
+        >
+          {img}
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover/img:bg-black/20">
+            <ZoomIn className="h-6 w-6 text-white opacity-0 drop-shadow transition-opacity group-hover/img:opacity-100" />
+          </span>
+        </button>
+        {open && (
+          <Lightbox
+            images={[{ id: path, url: image.url }]}
+            index={0}
+            onIndexChange={() => {}}
+            onClose={() => setOpen(false)}
+          />
+        )}
+      </>
+    );
+  }
+
+  if (!image) {
+    if (optional && fallback) {
+      return (
+        <div className={cn("group/img relative", className)}>
+          {fallback}
+          <ImageOverlayButton path={path} label={placeholderLabel} />
+        </div>
+      );
+    }
+    return (
+      <button
+        type="button"
+        data-editor-ui
+        onClick={(e) => {
+          e.stopPropagation();
+          editor.pickImage(path);
+        }}
+        className={cn(
+          "flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-primary/40 bg-primary/5 text-xs font-medium text-primary transition-colors hover:border-primary hover:bg-primary/10",
+          className,
+        )}
+      >
+        <ImagePlus className="h-5 w-5" />
+        {placeholderLabel}
+      </button>
+    );
+  }
+
+  return (
+    <div className={cn("group/img relative overflow-hidden", className)}>
+      <img
+        src={image.url}
+        alt={image.alt}
+        className={cn("h-full w-full object-cover", imgClassName)}
+      />
+      <div
+        data-editor-ui
+        className="absolute inset-x-2 bottom-2 z-10 flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover/img:opacity-100"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() => editor.pickImage(path)}
+          className="flex items-center gap-1 rounded-md bg-card/95 px-2 py-1 text-xs font-medium text-foreground shadow hover:bg-card"
+        >
+          <Replace className="h-3 w-3" /> Replace
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.update(path, null)}
+          className="flex items-center gap-1 rounded-md bg-card/95 px-2 py-1 text-xs font-medium text-destructive shadow hover:bg-card"
+        >
+          <X className="h-3 w-3" /> Remove
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ImageOverlayButton({ path, label }: { path: string; label: string }) {
+  const editor = useEditor();
+  if (!editor) return null;
+  return (
+    <button
+      type="button"
+      data-editor-ui
+      onClick={(e) => {
+        e.stopPropagation();
+        editor.pickImage(path);
+      }}
+      className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-md bg-card/95 px-2.5 py-1.5 text-xs font-medium text-foreground shadow-md hover:bg-card"
+    >
+      <ImagePlus className="h-3.5 w-3.5" /> {label}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // EditableIcon — click to swap the lucide icon shown on a card.
 // ---------------------------------------------------------------------------
 
@@ -403,7 +583,7 @@ export function EditableIcon({
   className,
   iconClassName,
 }: {
-  /** Path to the item object, e.g. "home.categories.items.0" */
+  /** Path to the item object, e.g. "pages.home.1.props.items.0" */
   itemPath: string;
   name: string;
   className?: string;
@@ -416,8 +596,7 @@ export function EditableIcon({
   const panelRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
-  // The panel is portalled to the (preview) document body so it escapes card
-  // hover transforms / sticky headers that would otherwise clip or cover it.
+  // Portalled to the preview body so it escapes card transforms / sticky headers.
   useEffect(() => {
     if (!open || !editor) return;
     const el = buttonRef.current;
@@ -508,7 +687,3 @@ export function EditableIcon({
     </>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Shared layout helpers
-// ---------------------------------------------------------------------------

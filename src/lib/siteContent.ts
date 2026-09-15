@@ -1,49 +1,20 @@
-import { ICON_NAMES, type IconName } from "@/components/site/icons";
+import {
+  type Block,
+  type BlockType,
+  type CtaLink,
+  createBlock,
+  cta,
+  isRec,
+  normalizeBlocks,
+  str,
+  strList,
+} from "./blocks";
+
+export * from "./blocks";
 
 // ---------------------------------------------------------------------------
-// Types
+// Pages
 // ---------------------------------------------------------------------------
-
-export type SectionTone = "plain" | "card" | "tinted";
-export type Align = "left" | "center";
-export type Columns = 2 | 3 | 4;
-export type Side = "left" | "right";
-export type InternalRoute = "/" | "/about" | "/services" | "/categories" | "/contact";
-
-export const INTERNAL_ROUTES: { value: InternalRoute; label: string }[] = [
-  { value: "/", label: "Home" },
-  { value: "/about", label: "About" },
-  { value: "/services", label: "Services" },
-  { value: "/categories", label: "Categories" },
-  { value: "/contact", label: "Contact" },
-];
-
-export interface CtaLink {
-  label: string;
-  to: InternalRoute;
-}
-
-export interface IconItem {
-  icon: IconName;
-  title: string;
-  desc: string;
-}
-
-export interface HoursRow {
-  label: string;
-  value: string;
-}
-
-export interface SectionConfig<Id extends string = string> {
-  id: Id;
-  visible: boolean;
-}
-
-export type HomeSectionId = "hero" | "categories" | "about" | "areas" | "cta";
-export type AboutSectionId = "intro" | "values";
-export type ServicesSectionId = "intro" | "grid";
-export type CategoriesSectionId = "intro" | "grid";
-export type ContactSectionId = "intro" | "main";
 
 export type PageKey = "home" | "about" | "services" | "categories" | "contact";
 
@@ -62,107 +33,6 @@ export interface SiteContent {
     name: string;
     navCta: CtaLink;
   };
-  home: {
-    sections: SectionConfig<HomeSectionId>[];
-    hero: {
-      eyebrow: string;
-      heading: string;
-      subheading: string;
-      primaryCta: CtaLink;
-      secondaryCta: CtaLink;
-      overlay: "light" | "medium" | "dark";
-    };
-    categories: {
-      eyebrow: string;
-      heading: string;
-      blurb: string;
-      items: IconItem[];
-      columns: Columns;
-      ctaLabel: string;
-      tone: SectionTone;
-      align: Align;
-    };
-    about: {
-      eyebrow: string;
-      heading: string;
-      paragraphs: string[];
-      ctaLabel: string;
-      servicesHeading: string;
-      services: string[];
-      boxSide: Side;
-      tone: SectionTone;
-    };
-    areas: {
-      heading: string;
-      blurb: string;
-      suburbs: string[];
-      ctaLabel: string;
-      tone: SectionTone;
-      align: Align;
-    };
-    cta: {
-      heading: string;
-      blurb: string;
-      button: CtaLink;
-    };
-  };
-  about: {
-    sections: SectionConfig<AboutSectionId>[];
-    intro: {
-      eyebrow: string;
-      heading: string;
-      paragraphs: string[];
-      align: Align;
-    };
-    values: {
-      items: IconItem[];
-      columns: Columns;
-    };
-  };
-  services: {
-    sections: SectionConfig<ServicesSectionId>[];
-    intro: {
-      eyebrow: string;
-      heading: string;
-      blurb: string;
-      align: Align;
-    };
-    grid: {
-      items: IconItem[];
-      columns: Columns;
-    };
-  };
-  categories: {
-    sections: SectionConfig<CategoriesSectionId>[];
-    intro: {
-      eyebrow: string;
-      heading: string;
-      blurb: string;
-      align: Align;
-    };
-    grid: {
-      columns: 2 | 3;
-      emptyMessage: string;
-    };
-  };
-  contact: {
-    sections: SectionConfig<ContactSectionId>[];
-    intro: {
-      eyebrow: string;
-      heading: string;
-      blurb: string;
-    };
-    main: {
-      formHeading: string;
-      submitLabel: string;
-      successMessage: string;
-      areasHeading: string;
-      serviceAreas: string[];
-      hoursHeading: string;
-      hours: HoursRow[];
-      infoSide: Side;
-    };
-  };
   footer: {
     tagline: string;
     linksHeading: string;
@@ -173,260 +43,309 @@ export interface SiteContent {
     contactCtaLabel: string;
     copyright: string;
   };
+  pages: Record<PageKey, Block[]>;
 }
 
 // ---------------------------------------------------------------------------
-// Defaults
+// Defaults — the site as it ships before any editing.
 // ---------------------------------------------------------------------------
+
+const ABOUT_P1 =
+  "Top Furniture Supplies is focused on providing high-quality service and customer satisfaction — we will do everything we can to meet your expectations.";
+const ABOUT_P2 =
+  "Our company is based on the belief that our customers' needs are of the utmost importance. Our entire team is committed to meeting those needs. As a result, a high percentage of our business is from repeat customers and referrals.";
+
+function defaultPages(): Record<PageKey, Block[]> {
+  return {
+    home: [
+      createBlock(
+        "hero",
+        {
+          eyebrow: "Sydney's Trusted Furniture Specialists",
+          heading: "Crafted with care,\nbuilt to last.",
+          subheading:
+            "From custom cabinetry and built-in wardrobes to handcrafted dining tables and office fitouts — we bring your vision to life with quality timber and expert joinery.",
+          primaryCta: { label: "Get a Free Quote", to: "/contact" },
+          secondaryCta: { label: "Our Services", to: "/services" },
+        },
+        "home-hero",
+      ),
+      createBlock(
+        "cards",
+        {
+          heading: "Categories We Service",
+          blurb: "A wide range of furniture and joinery solutions for homes and businesses.",
+          items: [
+            {
+              icon: "box",
+              image: null,
+              title: "Cabinet Making",
+              desc: "Custom cabinets for kitchens, bathrooms and living spaces.",
+            },
+            {
+              icon: "table",
+              image: null,
+              title: "Dining Tables",
+              desc: "Handcrafted timber dining tables built to your specifications.",
+            },
+            {
+              icon: "home",
+              image: null,
+              title: "Wardrobes",
+              desc: "Built-in and standalone wardrobe solutions with smart storage.",
+            },
+            {
+              icon: "treePine",
+              image: null,
+              title: "Outdoor Furniture",
+              desc: "Durable, weather-resistant timber pieces for your garden.",
+            },
+          ],
+          columns: 4,
+          cta: { label: "View all categories →", to: "/categories" },
+        },
+        "home-categories",
+      ),
+      createBlock(
+        "textImage",
+        {
+          eyebrow: "About Us",
+          heading: "Enjoy your life with quality furniture",
+          paragraphs: [ABOUT_P1, ABOUT_P2],
+          cta: { label: "Learn More About Us", to: "/about" },
+          aside: "list",
+          listHeading: "Our Services Include",
+          listItems: [
+            "Wooden Parts",
+            "Wooden Frames",
+            "Chairs",
+            "Tables",
+            "Coffee Tables",
+            "Buffets",
+            "Entertainment Units",
+            "Accessories",
+            "Project Work",
+            "Timber Stains",
+          ],
+        },
+        "home-about",
+      ),
+      createBlock(
+        "tags",
+        {
+          heading: "Areas We Service",
+          blurb:
+            "Proudly serving homes and businesses across Sydney's southwest, including Condell Park, Bankstown and surrounding suburbs.",
+          items: [
+            "Condell Park",
+            "Bankstown",
+            "Greenacre",
+            "Yagoona",
+            "Punchbowl",
+            "Lakemba",
+            "Bass Hill",
+            "Chester Hill",
+          ],
+          cta: { label: "Not sure if we cover your area? Contact us →", to: "/contact" },
+        },
+        "home-areas",
+      ),
+      createBlock(
+        "cta",
+        {
+          heading: "Ready to start your project?",
+          blurb:
+            "For all enquiries, contact us today. We'd love to earn your trust and deliver the best service in the industry.",
+          button: { label: "Contact Us", to: "/contact" },
+        },
+        "home-cta",
+      ),
+    ],
+    about: [
+      createBlock(
+        "intro",
+        { eyebrow: "About Us", heading: "Enjoy your life", blurb: "", level: "h1" },
+        "about-intro",
+      ),
+      createBlock(
+        "textImage",
+        {
+          eyebrow: "",
+          heading: "Built on trust and craftsmanship",
+          paragraphs: [
+            ABOUT_P1,
+            ABOUT_P2,
+            "We would welcome the opportunity to earn your trust and deliver you the best service in the industry.",
+            "With a variety of offerings to choose from, we're sure you'll be happy working with us.",
+          ],
+          cta: { label: "Get in touch", to: "/contact" },
+          aside: "image",
+          asideSide: "left",
+        },
+        "about-story",
+      ),
+      createBlock(
+        "cards",
+        {
+          heading: "",
+          items: [
+            {
+              icon: "heartHandshake",
+              image: null,
+              title: "Customer First",
+              desc: "Your needs are our top priority. We listen, adapt, and deliver results that exceed expectations.",
+            },
+            {
+              icon: "wrench",
+              image: null,
+              title: "Quality Craftsmanship",
+              desc: "Every piece is built with care using premium timber and proven joinery techniques.",
+            },
+            {
+              icon: "shield",
+              image: null,
+              title: "Trusted Reputation",
+              desc: "A high percentage of our work comes from repeat customers and referrals.",
+            },
+          ],
+          columns: 3,
+          tone: "plain",
+        },
+        "about-values",
+      ),
+    ],
+    services: [
+      createBlock(
+        "intro",
+        {
+          eyebrow: "What We Do",
+          heading: "Our Services",
+          blurb:
+            "From individual wooden parts to complete room fitouts, we provide a comprehensive range of furniture and joinery solutions.",
+          level: "h1",
+        },
+        "services-intro",
+      ),
+      createBlock(
+        "cards",
+        {
+          heading: "",
+          items: [
+            {
+              icon: "puzzle",
+              image: null,
+              title: "Wooden Parts",
+              desc: "Precision-cut wooden components for furniture assembly and restoration projects.",
+            },
+            {
+              icon: "frame",
+              image: null,
+              title: "Wooden Frames",
+              desc: "Sturdy, handcrafted timber frames for chairs, sofas, beds and custom builds.",
+            },
+            {
+              icon: "armchair",
+              image: null,
+              title: "Chairs",
+              desc: "Custom built chairs designed for comfort, style and durability.",
+            },
+            {
+              icon: "table",
+              image: null,
+              title: "Tables",
+              desc: "Dining tables, coffee tables, side tables and desks — all made to measure.",
+            },
+            {
+              icon: "coffee",
+              image: null,
+              title: "Coffee Tables",
+              desc: "Stylish centre-piece coffee tables in a range of timber finishes.",
+            },
+            {
+              icon: "tv",
+              image: null,
+              title: "Entertainment Units",
+              desc: "Custom entertainment units and media cabinets tailored to your space.",
+            },
+            {
+              icon: "gem",
+              image: null,
+              title: "Accessories",
+              desc: "Timber accessories including handles, trims, and decorative elements.",
+            },
+            {
+              icon: "hammer",
+              image: null,
+              title: "Project Work",
+              desc: "Bespoke project-based commissions from concept through to installation.",
+            },
+            {
+              icon: "paintbrush",
+              image: null,
+              title: "Timber Stains",
+              desc: "Professional staining and finishing services to protect and beautify your timber.",
+            },
+          ],
+          columns: 3,
+          tone: "plain",
+        },
+        "services-grid",
+      ),
+      createBlock(
+        "cta",
+        {
+          heading: "Have something specific in mind?",
+          blurb: "Every piece we make is built to order. Tell us about your project.",
+          button: { label: "Request a Quote", to: "/contact" },
+        },
+        "services-cta",
+      ),
+    ],
+    categories: [
+      createBlock(
+        "intro",
+        { eyebrow: "What We Cover", heading: "Categories We Service", blurb: "", level: "h1" },
+        "categories-intro",
+      ),
+      createBlock("categoriesGrid", {}, "categories-grid"),
+    ],
+    contact: [
+      createBlock(
+        "intro",
+        {
+          eyebrow: "Get in Touch",
+          heading: "Contact Us",
+          blurb:
+            "For all enquiries, contact us today. We'd welcome the opportunity to earn your trust and deliver the best service in the industry.",
+          level: "h1",
+        },
+        "contact-intro",
+      ),
+      createBlock(
+        "contact",
+        {
+          serviceAreas: [
+            "Condell Park, NSW",
+            "Bankstown, NSW",
+            "Greenacre, NSW",
+            "Yagoona, NSW",
+            "Surrounding Sydney suburbs",
+          ],
+          hours: [
+            { label: "Monday – Saturday", value: "8:00 AM – 5:00 PM" },
+            { label: "Sunday", value: "Closed" },
+          ],
+        },
+        "contact-main",
+      ),
+    ],
+  };
+}
 
 export const DEFAULT_SITE_CONTENT: SiteContent = {
   brand: {
     name: "Top Furniture Supplies",
     navCta: { label: "Get a Quote", to: "/contact" },
-  },
-  home: {
-    sections: [
-      { id: "hero", visible: true },
-      { id: "categories", visible: true },
-      { id: "about", visible: true },
-      { id: "areas", visible: true },
-      { id: "cta", visible: true },
-    ],
-    hero: {
-      eyebrow: "Sydney's Trusted Furniture Specialists",
-      heading: "Crafted with care,\nbuilt to last.",
-      subheading:
-        "From custom cabinetry and built-in wardrobes to handcrafted dining tables and office fitouts — we bring your vision to life with quality timber and expert joinery.",
-      primaryCta: { label: "Get a Free Quote", to: "/contact" },
-      secondaryCta: { label: "Our Services", to: "/services" },
-      overlay: "medium",
-    },
-    categories: {
-      eyebrow: "",
-      heading: "Categories We Service",
-      blurb: "A wide range of furniture and joinery solutions for homes and businesses.",
-      items: [
-        {
-          icon: "box",
-          title: "Cabinet Making",
-          desc: "Custom cabinets for kitchens, bathrooms and living spaces.",
-        },
-        {
-          icon: "table",
-          title: "Dining Tables",
-          desc: "Handcrafted timber dining tables built to your specifications.",
-        },
-        {
-          icon: "home",
-          title: "Wardrobes",
-          desc: "Built-in and standalone wardrobe solutions with smart storage.",
-        },
-        {
-          icon: "treePine",
-          title: "Outdoor Furniture",
-          desc: "Durable, weather-resistant timber pieces for your garden.",
-        },
-      ],
-      columns: 4,
-      ctaLabel: "View all categories →",
-      tone: "card",
-      align: "center",
-    },
-    about: {
-      eyebrow: "About Us",
-      heading: "Enjoy your life with quality furniture",
-      paragraphs: [
-        "Top Furniture Supplies is focused on providing high-quality service and customer satisfaction — we will do everything we can to meet your expectations.",
-        "Our company is based on the belief that our customers' needs are of the utmost importance. Our entire team is committed to meeting those needs. As a result, a high percentage of our business is from repeat customers and referrals.",
-      ],
-      ctaLabel: "Learn More About Us",
-      servicesHeading: "Our Services Include",
-      services: [
-        "Wooden Parts",
-        "Wooden Frames",
-        "Chairs",
-        "Tables",
-        "Coffee Tables",
-        "Buffets",
-        "Entertainment Units",
-        "Accessories",
-        "Project Work",
-        "Timber Stains",
-      ],
-      boxSide: "right",
-      tone: "plain",
-    },
-    areas: {
-      heading: "Areas We Service",
-      blurb:
-        "Proudly serving homes and businesses across Sydney's southwest, including Condell Park, Bankstown and surrounding suburbs.",
-      suburbs: [
-        "Condell Park",
-        "Bankstown",
-        "Greenacre",
-        "Yagoona",
-        "Punchbowl",
-        "Lakemba",
-        "Bass Hill",
-        "Chester Hill",
-      ],
-      ctaLabel: "Not sure if we cover your area? Contact us →",
-      tone: "tinted",
-      align: "center",
-    },
-    cta: {
-      heading: "Ready to start your project?",
-      blurb:
-        "For all enquiries, contact us today. We'd love to earn your trust and deliver the best service in the industry.",
-      button: { label: "Contact Us", to: "/contact" },
-    },
-  },
-  about: {
-    sections: [
-      { id: "intro", visible: true },
-      { id: "values", visible: true },
-    ],
-    intro: {
-      eyebrow: "About Us",
-      heading: "Enjoy your life",
-      paragraphs: [
-        "Top Furniture Supplies is focused on providing high-quality service and customer satisfaction — we will do everything we can to meet your expectations.",
-        "Our company is based on the belief that our customers' needs are of the utmost importance. Our entire team is committed to meeting those needs. As a result, a high percentage of our business is from repeat customers and referrals.",
-        "We would welcome the opportunity to earn your trust and deliver you the best service in the industry.",
-        "With a variety of offerings to choose from, we're sure you'll be happy working with us.",
-      ],
-      align: "center",
-    },
-    values: {
-      items: [
-        {
-          icon: "heartHandshake",
-          title: "Customer First",
-          desc: "Your needs are our top priority. We listen, adapt, and deliver results that exceed expectations.",
-        },
-        {
-          icon: "wrench",
-          title: "Quality Craftsmanship",
-          desc: "Every piece is built with care using premium timber and proven joinery techniques.",
-        },
-        {
-          icon: "shield",
-          title: "Trusted Reputation",
-          desc: "A high percentage of our work comes from repeat customers and referrals.",
-        },
-      ],
-      columns: 3,
-    },
-  },
-  services: {
-    sections: [
-      { id: "intro", visible: true },
-      { id: "grid", visible: true },
-    ],
-    intro: {
-      eyebrow: "What We Do",
-      heading: "Our Services",
-      blurb:
-        "From individual wooden parts to complete room fitouts, we provide a comprehensive range of furniture and joinery solutions.",
-      align: "center",
-    },
-    grid: {
-      items: [
-        {
-          icon: "puzzle",
-          title: "Wooden Parts",
-          desc: "Precision-cut wooden components for furniture assembly and restoration projects.",
-        },
-        {
-          icon: "frame",
-          title: "Wooden Frames",
-          desc: "Sturdy, handcrafted timber frames for chairs, sofas, beds and custom builds.",
-        },
-        {
-          icon: "armchair",
-          title: "Chairs",
-          desc: "Custom built chairs designed for comfort, style and durability.",
-        },
-        {
-          icon: "table",
-          title: "Tables",
-          desc: "Dining tables, coffee tables, side tables and desks — all made to measure.",
-        },
-        {
-          icon: "coffee",
-          title: "Coffee Tables",
-          desc: "Stylish centre-piece coffee tables in a range of timber finishes.",
-        },
-        {
-          icon: "tv",
-          title: "Entertainment Units",
-          desc: "Custom entertainment units and media cabinets tailored to your space.",
-        },
-        {
-          icon: "gem",
-          title: "Accessories",
-          desc: "Timber accessories including handles, trims, and decorative elements.",
-        },
-        {
-          icon: "hammer",
-          title: "Project Work",
-          desc: "Bespoke project-based commissions from concept through to installation.",
-        },
-        {
-          icon: "paintbrush",
-          title: "Timber Stains",
-          desc: "Professional staining and finishing services to protect and beautify your timber.",
-        },
-      ],
-      columns: 3,
-    },
-  },
-  categories: {
-    sections: [
-      { id: "intro", visible: true },
-      { id: "grid", visible: true },
-    ],
-    intro: {
-      eyebrow: "What We Cover",
-      heading: "Categories We Service",
-      blurb: "",
-      align: "center",
-    },
-    grid: {
-      columns: 3,
-      emptyMessage: "No categories to display yet.",
-    },
-  },
-  contact: {
-    sections: [
-      { id: "intro", visible: true },
-      { id: "main", visible: true },
-    ],
-    intro: {
-      eyebrow: "Get in Touch",
-      heading: "Contact Us",
-      blurb:
-        "For all enquiries, contact us today. We'd welcome the opportunity to earn your trust and deliver the best service in the industry.",
-    },
-    main: {
-      formHeading: "Send us a message",
-      submitLabel: "Send Enquiry",
-      successMessage: "Thanks! Your message has been sent.",
-      areasHeading: "Service Areas",
-      serviceAreas: [
-        "Condell Park, NSW",
-        "Bankstown, NSW",
-        "Greenacre, NSW",
-        "Yagoona, NSW",
-        "Surrounding Sydney suburbs",
-      ],
-      hoursHeading: "Business Hours",
-      hours: [
-        { label: "Monday – Saturday", value: "8:00 AM – 5:00 PM" },
-        { label: "Sunday", value: "Closed" },
-      ],
-      infoSide: "right",
-    },
   },
   footer: {
     tagline: "High-quality custom furniture, cabinetry, and joinery services across Sydney.",
@@ -438,238 +357,30 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
     contactCtaLabel: "Get in Touch",
     copyright: "Top Furniture Supplies. All rights reserved.",
   },
+  pages: defaultPages(),
 };
 
 // ---------------------------------------------------------------------------
-// Limits (mirrored loosely by the API's structural sanitiser)
-// ---------------------------------------------------------------------------
-
-export const CONTENT_LIMITS = {
-  text: 2000,
-  listItems: 40,
-} as const;
-
-// ---------------------------------------------------------------------------
-// Normalisation — coerces anything (old saved shapes, partial objects, junk)
-// into a fully-populated, type-safe SiteContent.
+// Normalisation + migrations
 // ---------------------------------------------------------------------------
 
 type Rec = Record<string, unknown>;
 
-function isRec(v: unknown): v is Rec {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
-function str(v: unknown, fallback: string): string {
-  return typeof v === "string" ? v.slice(0, CONTENT_LIMITS.text) : fallback;
-}
-
-function oneOf<T extends string | number>(v: unknown, allowed: readonly T[], fallback: T): T {
-  return (allowed as readonly unknown[]).includes(v) ? (v as T) : fallback;
-}
-
-function strList(v: unknown, fallback: string[]): string[] {
-  if (!Array.isArray(v)) return fallback;
-  return v
-    .filter((x): x is string => typeof x === "string")
-    .slice(0, CONTENT_LIMITS.listItems)
-    .map((s) => s.slice(0, CONTENT_LIMITS.text));
-}
-
-function iconName(v: unknown, fallback: IconName): IconName {
-  return oneOf(v, ICON_NAMES, fallback);
-}
-
-function iconItems(v: unknown, fallback: IconItem[]): IconItem[] {
-  if (!Array.isArray(v)) return fallback;
-  return v
-    .filter(isRec)
-    .slice(0, CONTENT_LIMITS.listItems)
-    .map((x, i) => ({
-      icon: iconName(x.icon, fallback[i]?.icon ?? "gem"),
-      title: str(x.title, ""),
-      desc: str(x.desc, ""),
-    }));
-}
-
-function hoursRows(v: unknown, fallback: HoursRow[]): HoursRow[] {
-  if (!Array.isArray(v)) return fallback;
-  return v
-    .filter(isRec)
-    .slice(0, CONTENT_LIMITS.listItems)
-    .map((x) => ({ label: str(x.label, ""), value: str(x.value, "") }));
-}
-
-function route(v: unknown, fallback: InternalRoute): InternalRoute {
-  return oneOf(
-    v,
-    INTERNAL_ROUTES.map((r) => r.value),
-    fallback,
-  );
-}
-
-function cta(v: unknown, fallback: CtaLink): CtaLink {
-  if (!isRec(v)) return fallback;
-  return { label: str(v.label, fallback.label), to: route(v.to, fallback.to) };
-}
-
-function sections<Id extends string>(
-  v: unknown,
-  fallback: SectionConfig<Id>[],
-): SectionConfig<Id>[] {
-  const allowed = fallback.map((s) => s.id);
-  const seen = new Set<Id>();
-  const out: SectionConfig<Id>[] = [];
-  if (Array.isArray(v)) {
-    for (const item of v) {
-      if (!isRec(item)) continue;
-      const id = item.id;
-      if (typeof id !== "string" || !allowed.includes(id as Id) || seen.has(id as Id)) continue;
-      seen.add(id as Id);
-      out.push({ id: id as Id, visible: item.visible !== false });
-    }
-  }
-  // Any section missing from the saved order is appended so new sections
-  // added in code still show up for existing installs.
-  for (const s of fallback) if (!seen.has(s.id)) out.push({ ...s });
-  return out;
-}
-
-const ALIGN: readonly Align[] = ["left", "center"];
-const TONE: readonly SectionTone[] = ["plain", "card", "tinted"];
-const SIDE: readonly Side[] = ["left", "right"];
-const COLS: readonly Columns[] = [2, 3, 4];
-
 export function normalizeSiteContent(raw: unknown): SiteContent {
   const d = DEFAULT_SITE_CONTENT;
-  const p = isRec(raw) ? migrateLegacy(raw) : {};
+  let p: Rec = isRec(raw) ? raw : {};
+  if (isLegacyV1(p)) p = migrateV1toV2(p);
+  if (isV2(p)) p = migrateV2toV3(p);
 
   const brand = isRec(p.brand) ? p.brand : {};
-  const home = isRec(p.home) ? p.home : {};
-  const hero = isRec(home.hero) ? home.hero : {};
-  const hCats = isRec(home.categories) ? home.categories : {};
-  const hAbout = isRec(home.about) ? home.about : {};
-  const hAreas = isRec(home.areas) ? home.areas : {};
-  const hCta = isRec(home.cta) ? home.cta : {};
-  const about = isRec(p.about) ? p.about : {};
-  const aIntro = isRec(about.intro) ? about.intro : {};
-  const aValues = isRec(about.values) ? about.values : {};
-  const services = isRec(p.services) ? p.services : {};
-  const sIntro = isRec(services.intro) ? services.intro : {};
-  const sGrid = isRec(services.grid) ? services.grid : {};
-  const categories = isRec(p.categories) ? p.categories : {};
-  const cIntro = isRec(categories.intro) ? categories.intro : {};
-  const cGrid = isRec(categories.grid) ? categories.grid : {};
-  const contact = isRec(p.contact) ? p.contact : {};
-  const ctIntro = isRec(contact.intro) ? contact.intro : {};
-  const ctMain = isRec(contact.main) ? contact.main : {};
   const footer = isRec(p.footer) ? p.footer : {};
+  const pages = isRec(p.pages) ? p.pages : {};
+  const defaults = defaultPages();
 
   return {
     brand: {
       name: str(brand.name, d.brand.name),
       navCta: cta(brand.navCta, d.brand.navCta),
-    },
-    home: {
-      sections: sections(home.sections, d.home.sections),
-      hero: {
-        eyebrow: str(hero.eyebrow, d.home.hero.eyebrow),
-        heading: str(hero.heading, d.home.hero.heading),
-        subheading: str(hero.subheading, d.home.hero.subheading),
-        primaryCta: cta(hero.primaryCta, d.home.hero.primaryCta),
-        secondaryCta: cta(hero.secondaryCta, d.home.hero.secondaryCta),
-        overlay: oneOf(hero.overlay, ["light", "medium", "dark"] as const, d.home.hero.overlay),
-      },
-      categories: {
-        eyebrow: str(hCats.eyebrow, d.home.categories.eyebrow),
-        heading: str(hCats.heading, d.home.categories.heading),
-        blurb: str(hCats.blurb, d.home.categories.blurb),
-        items: iconItems(hCats.items, d.home.categories.items),
-        columns: oneOf(hCats.columns, COLS, d.home.categories.columns),
-        ctaLabel: str(hCats.ctaLabel, d.home.categories.ctaLabel),
-        tone: oneOf(hCats.tone, TONE, d.home.categories.tone),
-        align: oneOf(hCats.align, ALIGN, d.home.categories.align),
-      },
-      about: {
-        eyebrow: str(hAbout.eyebrow, d.home.about.eyebrow),
-        heading: str(hAbout.heading, d.home.about.heading),
-        paragraphs: strList(hAbout.paragraphs, d.home.about.paragraphs),
-        ctaLabel: str(hAbout.ctaLabel, d.home.about.ctaLabel),
-        servicesHeading: str(hAbout.servicesHeading, d.home.about.servicesHeading),
-        services: strList(hAbout.services, d.home.about.services),
-        boxSide: oneOf(hAbout.boxSide, SIDE, d.home.about.boxSide),
-        tone: oneOf(hAbout.tone, TONE, d.home.about.tone),
-      },
-      areas: {
-        heading: str(hAreas.heading, d.home.areas.heading),
-        blurb: str(hAreas.blurb, d.home.areas.blurb),
-        suburbs: strList(hAreas.suburbs, d.home.areas.suburbs),
-        ctaLabel: str(hAreas.ctaLabel, d.home.areas.ctaLabel),
-        tone: oneOf(hAreas.tone, TONE, d.home.areas.tone),
-        align: oneOf(hAreas.align, ALIGN, d.home.areas.align),
-      },
-      cta: {
-        heading: str(hCta.heading, d.home.cta.heading),
-        blurb: str(hCta.blurb, d.home.cta.blurb),
-        button: cta(hCta.button, d.home.cta.button),
-      },
-    },
-    about: {
-      sections: sections(about.sections, d.about.sections),
-      intro: {
-        eyebrow: str(aIntro.eyebrow, d.about.intro.eyebrow),
-        heading: str(aIntro.heading, d.about.intro.heading),
-        paragraphs: strList(aIntro.paragraphs, d.about.intro.paragraphs),
-        align: oneOf(aIntro.align, ALIGN, d.about.intro.align),
-      },
-      values: {
-        items: iconItems(aValues.items, d.about.values.items),
-        columns: oneOf(aValues.columns, COLS, d.about.values.columns),
-      },
-    },
-    services: {
-      sections: sections(services.sections, d.services.sections),
-      intro: {
-        eyebrow: str(sIntro.eyebrow, d.services.intro.eyebrow),
-        heading: str(sIntro.heading, d.services.intro.heading),
-        blurb: str(sIntro.blurb, d.services.intro.blurb),
-        align: oneOf(sIntro.align, ALIGN, d.services.intro.align),
-      },
-      grid: {
-        items: iconItems(sGrid.items, d.services.grid.items),
-        columns: oneOf(sGrid.columns, COLS, d.services.grid.columns),
-      },
-    },
-    categories: {
-      sections: sections(categories.sections, d.categories.sections),
-      intro: {
-        eyebrow: str(cIntro.eyebrow, d.categories.intro.eyebrow),
-        heading: str(cIntro.heading, d.categories.intro.heading),
-        blurb: str(cIntro.blurb, d.categories.intro.blurb),
-        align: oneOf(cIntro.align, ALIGN, d.categories.intro.align),
-      },
-      grid: {
-        columns: oneOf(cGrid.columns, [2, 3] as const, d.categories.grid.columns),
-        emptyMessage: str(cGrid.emptyMessage, d.categories.grid.emptyMessage),
-      },
-    },
-    contact: {
-      sections: sections(contact.sections, d.contact.sections),
-      intro: {
-        eyebrow: str(ctIntro.eyebrow, d.contact.intro.eyebrow),
-        heading: str(ctIntro.heading, d.contact.intro.heading),
-        blurb: str(ctIntro.blurb, d.contact.intro.blurb),
-      },
-      main: {
-        formHeading: str(ctMain.formHeading, d.contact.main.formHeading),
-        submitLabel: str(ctMain.submitLabel, d.contact.main.submitLabel),
-        successMessage: str(ctMain.successMessage, d.contact.main.successMessage),
-        areasHeading: str(ctMain.areasHeading, d.contact.main.areasHeading),
-        serviceAreas: strList(ctMain.serviceAreas, d.contact.main.serviceAreas),
-        hoursHeading: str(ctMain.hoursHeading, d.contact.main.hoursHeading),
-        hours: hoursRows(ctMain.hours, d.contact.main.hours),
-        infoSide: oneOf(ctMain.infoSide, SIDE, d.contact.main.infoSide),
-      },
     },
     footer: {
       tagline: str(footer.tagline, d.footer.tagline),
@@ -681,40 +392,35 @@ export function normalizeSiteContent(raw: unknown): SiteContent {
       contactCtaLabel: str(footer.contactCtaLabel, d.footer.contactCtaLabel),
       copyright: str(footer.copyright, d.footer.copyright),
     },
+    pages: Object.fromEntries(
+      PAGE_KEYS.map((k) => [k, normalizeBlocks(pages[k], defaults[k])]),
+    ) as Record<PageKey, Block[]>,
   };
 }
 
-/**
- * Maps the original flat CMS shape (homeCategories / homeAbout / aboutPage /
- * servicesPage / contact...) into the current nested shape so content saved
- * before the visual editor existed isn't lost on first load.
- */
-function migrateLegacy(raw: Rec): Rec {
-  const isLegacy =
-    "homeCategories" in raw || "homeAbout" in raw || "aboutPage" in raw || "servicesPage" in raw;
-  if (!isLegacy) return raw;
+function isLegacyV1(p: Rec): boolean {
+  return "homeCategories" in p || "homeAbout" in p || "aboutPage" in p || "servicesPage" in p;
+}
 
-  const d = DEFAULT_SITE_CONTENT;
-  const legacyPairs = (v: unknown, icons: IconName[]): unknown =>
+function isV2(p: Rec): boolean {
+  return !("pages" in p) && ("home" in p || "about" in p || "services" in p || "contact" in p);
+}
+
+/** Original flat CMS shape → the v2 nested-page shape (partial; v3 migration fills the rest). */
+function migrateV1toV2(raw: Rec): Rec {
+  const withIcons = (v: unknown, icons: string[]): unknown =>
     Array.isArray(v)
       ? v.map((x, i) => (isRec(x) ? { ...x, icon: icons[i] ?? "gem" } : x))
       : undefined;
-
   const homeAbout = isRec(raw.homeAbout) ? raw.homeAbout : {};
   const homeServices = isRec(raw.homeServices) ? raw.homeServices : {};
   const homeAreas = isRec(raw.homeAreas) ? raw.homeAreas : {};
   const aboutPage = isRec(raw.aboutPage) ? raw.aboutPage : {};
   const servicesPage = isRec(raw.servicesPage) ? raw.servicesPage : {};
   const contact = isRec(raw.contact) ? raw.contact : {};
-
   return {
     home: {
-      categories: {
-        items: legacyPairs(
-          raw.homeCategories,
-          d.home.categories.items.map((i) => i.icon),
-        ),
-      },
+      categories: { items: withIcons(raw.homeCategories, ["box", "table", "home", "treePine"]) },
       about: {
         heading: homeAbout.heading,
         paragraphs: [homeAbout.paragraph1, homeAbout.paragraph2].filter(
@@ -723,29 +429,15 @@ function migrateLegacy(raw: Rec): Rec {
         servicesHeading: homeServices.heading,
         services: homeServices.items,
       },
-      areas: {
-        heading: homeAreas.heading,
-        blurb: homeAreas.blurb,
-        suburbs: homeAreas.suburbs,
-      },
+      areas: { heading: homeAreas.heading, blurb: homeAreas.blurb, suburbs: homeAreas.suburbs },
     },
     about: {
       intro: { heading: aboutPage.heading, paragraphs: aboutPage.paragraphs },
-      values: {
-        items: legacyPairs(
-          aboutPage.values,
-          d.about.values.items.map((i) => i.icon),
-        ),
-      },
+      values: { items: withIcons(aboutPage.values, ["heartHandshake", "wrench", "shield"]) },
     },
     services: {
       intro: { heading: servicesPage.heading, blurb: servicesPage.intro },
-      grid: {
-        items: legacyPairs(
-          servicesPage.items,
-          d.services.grid.items.map((i) => i.icon),
-        ),
-      },
+      grid: { items: servicesPage.items },
     },
     contact: {
       intro: { blurb: contact.intro },
@@ -754,10 +446,209 @@ function migrateLegacy(raw: Rec): Rec {
   };
 }
 
+function defined(obj: Rec): Rec {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+}
+
+/**
+ * v2 (fixed sections per page) → v3 (block list per page). Starts from the
+ * default block of the same role so anything v2 didn't store keeps sensible
+ * site-specific copy instead of generic library placeholders.
+ */
+function migrateV2toV3(raw: Rec): Rec {
+  const defaults = defaultPages();
+  const byId = (page: PageKey, id: string) => defaults[page].find((b) => b.id === id)!;
+
+  function build(
+    page: PageKey,
+    defaultId: string,
+    type: BlockType,
+    props: Rec,
+    visible: boolean | undefined,
+  ): Rec {
+    const base = byId(page, defaultId) ?? createBlock(type, {}, defaultId);
+    return {
+      id: base.id,
+      type,
+      visible: visible !== false,
+      props: { ...base.props, ...defined(props) },
+    };
+  }
+
+  function sectionOrder(pageRaw: Rec, fallback: string[]): { id: string; visible?: boolean }[] {
+    const list = Array.isArray(pageRaw.sections)
+      ? pageRaw.sections.filter(isRec).map((s) => ({
+          id: String(s.id),
+          visible: typeof s.visible === "boolean" ? s.visible : undefined,
+        }))
+      : [];
+    const ids = new Set(list.map((s) => s.id));
+    for (const id of fallback) if (!ids.has(id)) list.push({ id, visible: undefined });
+    return list.filter((s) => fallback.includes(s.id));
+  }
+
+  const get = (o: unknown): Rec => (isRec(o) ? o : {});
+  const pages: Partial<Record<PageKey, Rec[]>> = {};
+
+  const home = get(raw.home);
+  pages.home = sectionOrder(home, ["hero", "categories", "about", "areas", "cta"]).map((s) => {
+    const v = s.visible;
+    switch (s.id) {
+      case "hero": {
+        const h = get(home.hero);
+        return build("home", "home-hero", "hero", h, v);
+      }
+      case "categories": {
+        const c = get(home.categories);
+        return build(
+          "home",
+          "home-categories",
+          "cards",
+          {
+            eyebrow: c.eyebrow,
+            heading: c.heading,
+            blurb: c.blurb,
+            items: c.items,
+            columns: c.columns,
+            tone: c.tone,
+            align: c.align,
+            cta:
+              typeof c.ctaLabel === "string" ? { label: c.ctaLabel, to: "/categories" } : undefined,
+          },
+          v,
+        );
+      }
+      case "about": {
+        const a = get(home.about);
+        return build(
+          "home",
+          "home-about",
+          "textImage",
+          {
+            eyebrow: a.eyebrow,
+            heading: a.heading,
+            paragraphs: a.paragraphs,
+            cta: typeof a.ctaLabel === "string" ? { label: a.ctaLabel, to: "/about" } : undefined,
+            listHeading: a.servicesHeading,
+            listItems: a.services,
+            asideSide: a.boxSide,
+            tone: a.tone,
+          },
+          v,
+        );
+      }
+      case "areas": {
+        const a = get(home.areas);
+        return build(
+          "home",
+          "home-areas",
+          "tags",
+          {
+            heading: a.heading,
+            blurb: a.blurb,
+            items: a.suburbs,
+            cta: typeof a.ctaLabel === "string" ? { label: a.ctaLabel, to: "/contact" } : undefined,
+            tone: a.tone,
+            align: a.align,
+          },
+          v,
+        );
+      }
+      default: {
+        const c = get(home.cta);
+        return build("home", "home-cta", "cta", c, v);
+      }
+    }
+  });
+
+  const about = get(raw.about);
+  pages.about = sectionOrder(about, ["intro", "values"]).flatMap((s) => {
+    if (s.id === "intro") {
+      const i = get(about.intro);
+      const paragraphs = Array.isArray(i.paragraphs) ? i.paragraphs : undefined;
+      return [
+        build(
+          "about",
+          "about-intro",
+          "intro",
+          { eyebrow: i.eyebrow, heading: i.heading, align: i.align },
+          s.visible,
+        ),
+        build("about", "about-story", "textImage", { paragraphs }, s.visible),
+      ];
+    }
+    const val = get(about.values);
+    return [
+      build(
+        "about",
+        "about-values",
+        "cards",
+        { items: val.items, columns: val.columns },
+        s.visible,
+      ),
+    ];
+  });
+
+  const services = get(raw.services);
+  pages.services = sectionOrder(services, ["intro", "grid"]).map((s) => {
+    if (s.id === "intro") {
+      const i = get(services.intro);
+      return build(
+        "services",
+        "services-intro",
+        "intro",
+        { eyebrow: i.eyebrow, heading: i.heading, blurb: i.blurb, align: i.align },
+        s.visible,
+      );
+    }
+    const g = get(services.grid);
+    return build(
+      "services",
+      "services-grid",
+      "cards",
+      { items: g.items, columns: g.columns },
+      s.visible,
+    );
+  });
+  pages.services.push(byId("services", "services-cta") as unknown as Rec);
+
+  const categories = get(raw.categories);
+  pages.categories = sectionOrder(categories, ["intro", "grid"]).map((s) => {
+    if (s.id === "intro") {
+      const i = get(categories.intro);
+      return build(
+        "categories",
+        "categories-intro",
+        "intro",
+        { eyebrow: i.eyebrow, heading: i.heading, blurb: i.blurb, align: i.align },
+        s.visible,
+      );
+    }
+    const g = get(categories.grid);
+    return build("categories", "categories-grid", "categoriesGrid", g, s.visible);
+  });
+
+  const contact = get(raw.contact);
+  pages.contact = sectionOrder(contact, ["intro", "main"]).map((s) => {
+    if (s.id === "intro") {
+      const i = get(contact.intro);
+      return build(
+        "contact",
+        "contact-intro",
+        "intro",
+        { eyebrow: i.eyebrow, heading: i.heading, blurb: i.blurb },
+        s.visible,
+      );
+    }
+    return build("contact", "contact-main", "contact", get(contact.main), s.visible);
+  });
+
+  return { brand: raw.brand, footer: raw.footer, pages };
+}
+
 // ---------------------------------------------------------------------------
-// Path helpers — the visual editor addresses fields with dot paths such as
-// "home.about.paragraphs.1" so a single generic update function can serve
-// every editable element.
+// Path helpers — the editor addresses fields with dot paths such as
+// "pages.home.2.props.items.1.title".
 // ---------------------------------------------------------------------------
 
 export function getAtPath(obj: unknown, path: string): unknown {
@@ -781,6 +672,15 @@ export function setAtPath<T>(obj: T, path: string, value: unknown): T {
     return { ...base, [key]: isLast ? value : recurse(base[key], depth + 1) };
   }
   return recurse(obj, 0) as T;
+}
+
+/** Moves an array element; returns the same array if nothing changes. */
+export function moveItem<T>(list: T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list;
+  const next = list.slice();
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
 }
 
 // ---------------------------------------------------------------------------

@@ -12,12 +12,20 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  BLOCK_LIBRARY,
+  createBlock,
   DEFAULT_SITE_CONTENT,
   fetchSiteContent,
+  moveItem,
+  newBlockId,
   PAGE_KEYS,
   PAGE_META,
   saveSiteContent,
   setAtPath,
+  getAtPath,
+  type Block,
+  type BlockType,
+  type ImageRef,
   type PageKey,
   type SiteContent,
 } from "@/lib/siteContent";
@@ -36,10 +44,13 @@ import {
 import AdminShell from "@/components/admin/AdminShell";
 import PreviewFrame from "@/components/admin/PreviewFrame";
 import Inspector from "@/components/admin/Inspector";
+import BlockLibrary from "@/components/admin/BlockLibrary";
+import MediaPicker from "@/components/admin/MediaPicker";
 import { EditableContentProvider, type EditorApi } from "@/components/site/content-context";
-import PageSections from "@/components/site/PageSections";
+import PageBlocks from "@/components/site/PageBlocks";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
+import { attachSortable } from "@/components/site/sortable";
 
 type Device = "desktop" | "tablet" | "mobile";
 const DEVICE_WIDTHS: Record<Device, number | "100%"> = {
@@ -66,6 +77,8 @@ export default function AdminEditor() {
   const [device, setDevice] = useState<Device>("desktop");
   const [selected, setSelected] = useState<string | null>(null);
   const [iconPickerPath, setIconPickerPath] = useState<string | null>(null);
+  const [libraryTarget, setLibraryTarget] = useState<{ page: PageKey; index: number } | null>(null);
+  const [mediaTarget, setMediaTarget] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -75,6 +88,7 @@ export default function AdminEditor() {
   const pastRef = useRef<SiteContent[]>([]);
   const futureRef = useRef<SiteContent[]>([]);
   const lastEditRef = useRef<{ path: string; time: number } | null>(null);
+  const previewDocRef = useRef<Document | null>(null);
   const [historyVersion, setHistoryVersion] = useState(0);
 
   const commit = useCallback((produce: (prev: SiteContent) => SiteContent, path?: string) => {
@@ -155,35 +169,86 @@ export default function AdminEditor() {
     [commit],
   );
 
-  const moveSection = useCallback(
-    (pg: PageKey, id: string, dir: -1 | 1) => {
+  const reorder = useCallback(
+    (listPath: string, from: number, to: number) =>
       commit((prev) => {
-        const list = prev[pg].sections as { id: string; visible: boolean }[];
-        const i = list.findIndex((s) => s.id === id);
-        const j = i + dir;
-        if (i < 0 || j < 0 || j >= list.length) return prev;
-        const next = list.slice();
-        [next[i], next[j]] = [next[j], next[i]];
-        return setAtPath(prev, `${pg}.sections`, next);
-      });
-    },
+        const list = getAtPath(prev, listPath);
+        if (!Array.isArray(list)) return prev;
+        const next = moveItem(list, from, to);
+        return next === list ? prev : setAtPath(prev, listPath, next);
+      }),
     [commit],
   );
 
-  const toggleSection = useCallback(
-    (pg: PageKey, id: string) => {
+  const updateBlocks = useCallback(
+    (pg: PageKey, fn: (blocks: Block[]) => Block[]) =>
       commit((prev) => {
-        const list = prev[pg].sections as { id: string; visible: boolean }[];
-        const next = list.map((s) => (s.id === id ? { ...s, visible: !s.visible } : s));
-        return setAtPath(prev, `${pg}.sections`, next);
-      });
-    },
+        const next = fn(prev.pages[pg]);
+        return next === prev.pages[pg] ? prev : { ...prev, pages: { ...prev.pages, [pg]: next } };
+      }),
     [commit],
+  );
+
+  const toggleBlock = useCallback(
+    (pg: PageKey, id: string) =>
+      updateBlocks(pg, (blocks) =>
+        blocks.map((b) => (b.id === id ? ({ ...b, visible: !b.visible } as Block) : b)),
+      ),
+    [updateBlocks],
+  );
+
+  const removeBlock = useCallback(
+    (pg: PageKey, id: string) => {
+      updateBlocks(pg, (blocks) => blocks.filter((b) => b.id !== id));
+      setSelected((s) => (s === id ? null : s));
+    },
+    [updateBlocks],
+  );
+
+  const duplicateBlock = useCallback(
+    (pg: PageKey, id: string) => {
+      const copyId = newBlockId();
+      updateBlocks(pg, (blocks) => {
+        const i = blocks.findIndex((b) => b.id === id);
+        if (i < 0) return blocks;
+        const copy = { ...structuredClone(blocks[i]), id: copyId } as Block;
+        return [...blocks.slice(0, i + 1), copy, ...blocks.slice(i + 1)];
+      });
+      setSelected(copyId);
+    },
+    [updateBlocks],
+  );
+
+  const insertBlock = useCallback(
+    (pg: PageKey, index: number, type: BlockType) => {
+      const block = createBlock(type);
+      updateBlocks(pg, (blocks) => [...blocks.slice(0, index), block, ...blocks.slice(index)]);
+      setSelected(block.id);
+      setLibraryTarget(null);
+      // Bring the new section into view once it has rendered.
+      setTimeout(() => {
+        previewDocRef.current
+          ?.querySelector(`[data-block="${block.id}"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
+    },
+    [updateBlocks],
+  );
+
+  const applyImage = useCallback(
+    (image: ImageRef) => {
+      if (mediaTarget) update(mediaTarget, image);
+      setMediaTarget(null);
+    },
+    [mediaTarget, update],
   );
 
   const resetPage = useCallback(
     (pg: PageKey) => {
-      commit((prev) => ({ ...prev, [pg]: structuredClone(DEFAULT_SITE_CONTENT[pg]) }));
+      commit((prev) => ({
+        ...prev,
+        pages: { ...prev.pages, [pg]: structuredClone(DEFAULT_SITE_CONTENT.pages[pg]) },
+      }));
       setSelected(null);
     },
     [commit],
@@ -215,11 +280,35 @@ export default function AdminEditor() {
     }
   }, [draft, saving, navigate]);
 
-  const selectSection = useCallback((key: string | null, options?: { openPanel?: boolean }) => {
-    setSelected(key);
+  const selectBlock = useCallback((id: string | null, options?: { openPanel?: boolean }) => {
+    setSelected(id);
     setIconPickerPath(null);
     if (options?.openPanel) setPanelOpen(true);
   }, []);
+
+  const openLibrary = useCallback((pg: PageKey, index: number) => {
+    setLibraryTarget({ page: pg, index });
+  }, []);
+
+  const pickImage = useCallback((path: string) => setMediaTarget(path), []);
+
+  // Drag & drop: one sorter for the admin chrome (inspector list) and one for
+  // the preview document, both feeding the same reorder action.
+  const reorderRef = useRef(reorder);
+  reorderRef.current = reorder;
+  useEffect(
+    () => attachSortable(document, (path, from, to) => reorderRef.current(path, from, to)),
+    [],
+  );
+  const detachPreviewSortable = useRef<(() => void) | null>(null);
+  const handlePreviewDocument = useCallback((doc: Document | null) => {
+    previewDocRef.current = doc;
+    detachPreviewSortable.current?.();
+    detachPreviewSortable.current = doc
+      ? attachSortable(doc, (path, from, to) => reorderRef.current(path, from, to))
+      : null;
+  }, []);
+  useEffect(() => () => detachPreviewSortable.current?.(), []);
 
   function changePage(next: PageKey) {
     setParams({ page: next }, { replace: true });
@@ -263,14 +352,29 @@ export default function AdminEditor() {
   const editorApi: EditorApi = useMemo(
     () => ({
       update,
-      selectedSection: selected,
-      selectSection,
-      moveSection,
-      toggleSection,
+      reorder,
+      selectedBlock: selected,
+      selectBlock,
+      toggleBlock,
+      removeBlock,
+      duplicateBlock,
+      openLibrary,
+      pickImage,
       iconPickerPath,
       setIconPickerPath,
     }),
-    [update, selected, selectSection, moveSection, toggleSection, iconPickerPath],
+    [
+      update,
+      reorder,
+      selected,
+      selectBlock,
+      toggleBlock,
+      removeBlock,
+      duplicateBlock,
+      openLibrary,
+      pickImage,
+      iconPickerPath,
+    ],
   );
 
   const canUndo = pastRef.current.length > 0;
@@ -281,11 +385,14 @@ export default function AdminEditor() {
     <Inspector
       page={page}
       content={draft}
-      selected={selected}
-      onSelect={(k) => selectSection(k)}
+      selectedBlock={selected}
+      onSelect={(id) => selectBlock(id)}
       onUpdate={update}
-      onMoveSection={moveSection}
-      onToggleSection={toggleSection}
+      onToggle={toggleBlock}
+      onRemove={removeBlock}
+      onDuplicate={duplicateBlock}
+      onAddSection={openLibrary}
+      onPickImage={pickImage}
       onResetPage={resetPage}
       onClose={() => setPanelOpen(false)}
     />
@@ -413,12 +520,13 @@ export default function AdminEditor() {
                 <PreviewFrame
                   width={DEVICE_WIDTHS[device]}
                   className="h-full rounded-lg border border-border bg-background shadow-sm"
+                  onDocument={handlePreviewDocument}
                 >
                   <EditableContentProvider content={draft} editor={editorApi}>
                     <div className="flex min-h-screen flex-col">
                       <SiteHeader activePath={PAGE_META[page].path} />
                       <main className="flex-1">
-                        <PageSections page={page} />
+                        <PageBlocks page={page} />
                       </main>
                       <SiteFooter />
                     </div>
@@ -453,6 +561,19 @@ export default function AdminEditor() {
           )}
         </div>
       </div>
+
+      <BlockLibrary
+        open={libraryTarget !== null}
+        onClose={() => setLibraryTarget(null)}
+        onPick={(type) =>
+          libraryTarget && insertBlock(libraryTarget.page, libraryTarget.index, type)
+        }
+      />
+      <MediaPicker
+        open={mediaTarget !== null}
+        onClose={() => setMediaTarget(null)}
+        onSelect={applyImage}
+      />
     </AdminShell>
   );
 }

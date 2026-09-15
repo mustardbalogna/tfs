@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { PAGE_KEYS, PAGE_META } from "@/lib/siteContent";
 import { useSiteContent } from "./content-context";
-import { AddItem, EditableText, ListItem } from "./editable";
+import { AddItem, EditableText, ListItem, SortableList } from "./editable";
 
 const FOOTER_LINKS = PAGE_KEYS.filter((k) => k !== "home").map((k) => PAGE_META[k]);
 
@@ -46,20 +46,20 @@ export default function SiteFooter() {
               as="h4"
               className="text-sm font-semibold text-foreground"
             />
-            <ul className="mt-2 space-y-1">
+            <SortableList listPath="footer.services" as="ul" axis="y" className="mt-2 space-y-1">
               {footer.services.map((_, i) => (
                 <ListItem
                   key={i}
                   listPath="footer.services"
                   index={i}
                   as="li"
-                  direction="column"
+                  controls="inside"
                   className="text-sm text-muted-foreground"
                 >
                   <EditableText path={`footer.services.${i}`} placeholder="Service" />
                 </ListItem>
               ))}
-            </ul>
+            </SortableList>
             <AddItem
               listPath="footer.services"
               template="New service"
@@ -74,14 +74,19 @@ export default function SiteFooter() {
               as="h4"
               className="text-sm font-semibold text-foreground"
             />
-            <ul className="mt-2 space-y-1">
+            <SortableList
+              listPath="footer.contactLines"
+              as="ul"
+              axis="y"
+              className="mt-2 space-y-1"
+            >
               {footer.contactLines.map((_, i) => (
                 <ListItem
                   key={i}
                   listPath="footer.contactLines"
                   index={i}
                   as="li"
-                  direction="column"
+                  controls="inside"
                   className="text-sm text-muted-foreground"
                 >
                   <EditableText path={`footer.contactLines.${i}`} placeholder="Line" />
@@ -92,7 +97,7 @@ export default function SiteFooter() {
                   <EditableText path="footer.contactCtaLabel" />
                 </Link>
               </li>
-            </ul>
+            </SortableList>
             <AddItem
               listPath="footer.contactLines"
               template="New line"

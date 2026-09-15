@@ -11,10 +11,13 @@ export default function PreviewFrame({
   width,
   children,
   className,
+  onDocument,
 }: {
   width: number | "100%";
   children: ReactNode;
   className?: string;
+  /** Fires with the frame's document once it's ready (and null on unmount). */
+  onDocument?: (doc: Document | null) => void;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [mount, setMount] = useState<HTMLElement | null>(null);
@@ -48,6 +51,12 @@ export default function PreviewFrame({
     const doc = iframeRef.current?.contentDocument;
     if (doc && doc.readyState === "complete" && doc.body) handleLoad();
   }, [handleLoad]);
+
+  useEffect(() => {
+    if (!mount || !onDocument) return;
+    onDocument(mount.ownerDocument);
+    return () => onDocument(null);
+  }, [mount, onDocument]);
 
   useEffect(() => {
     if (!mount) return;

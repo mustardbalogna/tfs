@@ -1,7 +1,11 @@
 import { useState } from "react";
+import { Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useIsEditing, useSiteContent } from "../content-context";
-import { AddItem, EditableText, ListItem, Section } from "../editable";
+import type { BlockOf, PageKey } from "@/lib/siteContent";
+import { AddItem, BlockSection, EditableText, ListItem, SortableList } from "../editable";
+import { useIsEditing } from "../content-context";
+import Reveal from "../Reveal";
+import { Container } from "./shared";
 
 const SERVICE_OPTIONS = [
   { value: "cabinet-making", label: "Cabinet Making" },
@@ -21,38 +25,17 @@ const inputClass =
 const submitClass =
   "inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50";
 
-export function ContactIntro() {
-  return (
-    <Section page="contact" id="intro" label="Intro" className="pt-16 sm:pt-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <EditableText
-            path="contact.intro.eyebrow"
-            as="p"
-            className="text-sm font-semibold uppercase tracking-widest text-primary"
-            placeholder="Eyebrow (optional)"
-          />
-          <EditableText
-            path="contact.intro.heading"
-            as="h1"
-            className="mt-3 font-serif text-4xl tracking-tight text-foreground sm:text-5xl"
-          />
-          <EditableText
-            path="contact.intro.blurb"
-            as="p"
-            multiline
-            className="mx-auto mt-4 max-w-2xl text-muted-foreground"
-            placeholder="Intro paragraph (optional)"
-          />
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-export function ContactMain() {
-  const { contact } = useSiteContent();
-  const s = contact.main;
+export default function ContactBlock({
+  page,
+  block,
+  path,
+}: {
+  page: PageKey;
+  block: BlockOf<"contact">;
+  path: string;
+}) {
+  const p = block.props;
+  const base = `${path}.props`;
   const editing = useIsEditing();
   const [form, setForm] = useState(EMPTY_FORM);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
@@ -90,13 +73,13 @@ export function ContactMain() {
   }
 
   return (
-    <Section page="contact" id="main" label="Form & details" className="py-14 sm:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <BlockSection page={page} block={block} label="Contact form" className="py-14 sm:py-20">
+      <Container>
         <div className="grid gap-8 lg:grid-cols-5">
-          <div className={cn("lg:col-span-3", s.infoSide === "left" && "lg:order-2")}>
-            <div className="rounded-xl border border-border bg-card p-8">
+          <Reveal className={cn("lg:col-span-3", p.infoSide === "left" && "lg:order-2")}>
+            <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
               <EditableText
-                path="contact.main.formHeading"
+                path={`${base}.formHeading`}
                 as="h2"
                 className="font-serif text-2xl text-foreground"
               />
@@ -175,90 +158,108 @@ export function ContactMain() {
                     {form.message.length}/{MAX_LENGTHS.message}
                   </p>
                 </div>
-                {status === "success" && <p className="text-sm text-primary">{s.successMessage}</p>}
+                {status === "success" && <p className="text-sm text-primary">{p.successMessage}</p>}
                 {status === "error" && <p className="text-sm text-destructive">{error}</p>}
                 {editing ? (
                   // contentEditable inside a real <button> is unreliable, so the
                   // preview swaps in a look-alike element for label editing.
                   <div className={submitClass}>
-                    <EditableText path="contact.main.submitLabel" />
+                    <EditableText path={`${base}.submitLabel`} />
                   </div>
                 ) : (
                   <button type="submit" disabled={status === "submitting"} className={submitClass}>
-                    {status === "submitting" ? "Sending..." : s.submitLabel}
+                    {status === "submitting" ? "Sending..." : p.submitLabel}
                   </button>
                 )}
               </form>
             </div>
-          </div>
+          </Reveal>
 
-          <div className={cn("space-y-8 lg:col-span-2", s.infoSide === "left" && "lg:order-1")}>
-            <div className="rounded-xl border border-border bg-card p-8">
-              <EditableText
-                path="contact.main.areasHeading"
-                as="h3"
-                className="font-serif text-xl text-foreground"
-              />
-              <ul className="mt-4 space-y-2 text-muted-foreground">
-                {s.serviceAreas.map((_, i) => (
+          <Reveal
+            delay={100}
+            className={cn("space-y-6 lg:col-span-2", p.infoSide === "left" && "lg:order-1")}
+          >
+            <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <MapPin className="h-4 w-4" />
+                </div>
+                <EditableText
+                  path={`${base}.areasHeading`}
+                  as="h3"
+                  className="font-serif text-xl text-foreground"
+                />
+              </div>
+              <SortableList
+                listPath={`${base}.serviceAreas`}
+                as="ul"
+                axis="y"
+                className="mt-4 space-y-2 text-muted-foreground"
+              >
+                {p.serviceAreas.map((_, i) => (
                   <ListItem
                     key={i}
-                    listPath="contact.main.serviceAreas"
+                    listPath={`${base}.serviceAreas`}
                     index={i}
                     as="li"
-                    direction="column"
+                    controls="inside"
                   >
-                    <EditableText path={`contact.main.serviceAreas.${i}`} placeholder="Area" />
+                    <EditableText path={`${base}.serviceAreas.${i}`} placeholder="Area" />
                   </ListItem>
                 ))}
-              </ul>
+              </SortableList>
               <AddItem
-                listPath="contact.main.serviceAreas"
+                listPath={`${base}.serviceAreas`}
                 template="New area"
                 label="Add area"
                 className="mt-3 w-full py-1.5 text-xs"
               />
             </div>
-            <div className="rounded-xl border border-border bg-card p-8">
-              <EditableText
-                path="contact.main.hoursHeading"
-                as="h3"
-                className="font-serif text-xl text-foreground"
-              />
-              <ul className="mt-4 space-y-2 text-muted-foreground">
-                {s.hours.map((_, i) => (
+            <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Clock className="h-4 w-4" />
+                </div>
+                <EditableText
+                  path={`${base}.hoursHeading`}
+                  as="h3"
+                  className="font-serif text-xl text-foreground"
+                />
+              </div>
+              <SortableList
+                listPath={`${base}.hours`}
+                as="ul"
+                axis="y"
+                className="mt-4 space-y-2 text-muted-foreground"
+              >
+                {p.hours.map((_, i) => (
                   <ListItem
                     key={i}
-                    listPath="contact.main.hours"
+                    listPath={`${base}.hours`}
                     index={i}
                     as="li"
-                    direction="column"
+                    controls="inside"
                     className="flex justify-between gap-4"
                   >
-                    <EditableText path={`contact.main.hours.${i}.label`} placeholder="Days" />
+                    <EditableText path={`${base}.hours.${i}.label`} placeholder="Days" />
                     <EditableText
-                      path={`contact.main.hours.${i}.value`}
-                      className="text-right"
+                      path={`${base}.hours.${i}.value`}
+                      className={cn("text-right", editing && "mr-16")}
                       placeholder="Hours"
                     />
                   </ListItem>
                 ))}
-              </ul>
+              </SortableList>
               <AddItem
-                listPath="contact.main.hours"
+                listPath={`${base}.hours`}
                 template={{ label: "Day", value: "9:00 AM – 5:00 PM" }}
                 label="Add row"
                 className="mt-3 w-full py-1.5 text-xs"
               />
             </div>
-          </div>
+          </Reveal>
         </div>
-      </div>
-    </Section>
+      </Container>
+    </BlockSection>
   );
 }
-
-export const CONTACT_SECTIONS = {
-  intro: ContactIntro,
-  main: ContactMain,
-} as const;
