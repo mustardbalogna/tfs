@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Bar,
   BarChart,
@@ -11,7 +11,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import AdminShell from "@/components/admin/AdminShell";
 import { Button } from "@/components/ui/button";
+
+const CHART_COLOR = "var(--primary)";
 
 interface StatsData {
   totalViews: number;
@@ -150,50 +153,40 @@ export default function AdminStats() {
     selectedDayHours?.map((views, hour) => ({ hour, views })) ?? stats?.byHour ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-serif text-2xl text-foreground">Website Statistics</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Last 30 days</p>
-        </div>
-        <Button variant="outline" asChild>
-          <Link to="/admin">Back to Messages</Link>
-        </Button>
-      </div>
-
-      {loading && <p className="mt-6 text-muted-foreground">Loading...</p>}
-      {error && <p className="mt-6 text-destructive">{error}</p>}
+    <AdminShell title="Statistics" description="Traffic over the last 30 days.">
+      {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       {stats && (
         <>
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-border bg-card p-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
               <p className="text-sm text-muted-foreground">Total Page Views</p>
               <p className="mt-1 font-serif text-3xl text-foreground">{stats.totalViews}</p>
             </div>
-            <div className="rounded-xl border border-border bg-card p-6">
+            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
               <p className="text-sm text-muted-foreground">Sessions</p>
               <p className="mt-1 font-serif text-3xl text-foreground">{stats.uniqueSessions}</p>
             </div>
-            <div className="rounded-xl border border-border bg-card p-6">
+            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
               <p className="text-sm text-muted-foreground">Unique Visitors</p>
               <p className="mt-1 font-serif text-3xl text-foreground">{stats.uniqueVisitors}</p>
             </div>
           </div>
 
-          <div className="mt-6 rounded-xl border border-border bg-card p-6">
+          <div className="mt-6 rounded-xl border border-border bg-card p-6 shadow-sm">
             <h2 className="font-serif text-lg text-foreground">Daily Traffic</h2>
             <div className="mt-4 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={stats.byDay}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                   <Tooltip content={<DailyTrafficTooltip />} />
                   <Line
                     type="monotone"
                     dataKey="views"
-                    stroke="#2563eb"
+                    stroke={CHART_COLOR}
                     strokeWidth={2}
                     dot={false}
                   />
@@ -202,7 +195,7 @@ export default function AdminStats() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-xl border border-border bg-card p-6">
+          <div className="mt-6 rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="font-serif text-lg text-foreground">
                 Traffic by Hour{selectedDay ? ` — ${selectedDay}` : " of Day"}
@@ -216,7 +209,7 @@ export default function AdminStats() {
             <div className="mt-4 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={hourChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis
                     dataKey="hour"
                     tick={{ fontSize: 11 }}
@@ -225,13 +218,13 @@ export default function AdminStats() {
                   />
                   <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                   <Tooltip content={<HourlyTrafficTooltip />} />
-                  <Bar dataKey="views" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="views" fill={CHART_COLOR} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="mt-6 rounded-xl border border-border bg-card p-6">
+          <div className="mt-6 rounded-xl border border-border bg-card p-6 shadow-sm">
             <h2 className="font-serif text-lg text-foreground">Traffic Calendar</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               Click a day to show its hourly breakdown above.
@@ -263,7 +256,9 @@ export default function AdminStats() {
                           backgroundColor:
                             views === 0
                               ? "var(--muted)"
-                              : `rgba(37, 99, 235, ${Math.max(0.15, views / maxDailyViews)})`,
+                              : `color-mix(in oklch, var(--primary) ${Math.round(
+                                  Math.max(15, (views / maxDailyViews) * 100),
+                                )}%, var(--muted))`,
                         }}
                       />
                     );
@@ -274,6 +269,6 @@ export default function AdminStats() {
           </div>
         </>
       )}
-    </div>
+    </AdminShell>
   );
 }

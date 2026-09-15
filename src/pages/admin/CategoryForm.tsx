@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import AdminShell, { AdminCard } from "@/components/admin/AdminShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useRequireAdmin } from "@/hooks/useRequireAdmin";
 import { CATEGORY_LIMITS, uploadCategoryImage, type Category } from "@/lib/categories";
 import { invalidateCategoriesCache } from "@/lib/categoriesCache";
 import CategoryImageManager from "@/components/admin/CategoryImageManager";
@@ -12,7 +12,6 @@ import PendingImagePicker, { type PendingImage } from "@/components/admin/Pendin
 const EMPTY_FORM = { name: "", heading: "", description: "" };
 
 export default function AdminCategoryForm() {
-  const { checking } = useRequireAdmin();
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
@@ -27,7 +26,6 @@ export default function AdminCategoryForm() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (checking) return;
     if (!isEdit) {
       setLoading(false);
       return;
@@ -58,7 +56,7 @@ export default function AdminCategoryForm() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checking, id]);
+  }, [id]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
@@ -147,99 +145,115 @@ export default function AdminCategoryForm() {
     }
   }
 
-  if (checking || loading) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-10">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
+  const title = isEdit ? "Edit category" : "New category";
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="font-serif text-2xl text-foreground">
-          {isEdit ? "Edit Category" : "New Category"}
-        </h1>
-        <Button variant="outline" asChild>
-          <Link to="/admin/categories">Cancel</Link>
+    <AdminShell
+      title={title}
+      description={
+        isEdit
+          ? "Changes appear on the public Categories page once saved."
+          : "Add a category and optionally upload photos for its gallery."
+      }
+      actions={
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/admin/categories">Back to categories</Link>
         </Button>
-      </div>
+      }
+    >
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : (
+        <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-5">
+          <AdminCard title="Details" className="space-y-5 lg:col-span-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                Category name
+              </label>
+              <Input
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                maxLength={CATEGORY_LIMITS.name}
+                required
+              />
+              <p className="mt-1 text-xs text-muted-foreground">Internal name — must be unique.</p>
+              {fieldErrors.name && (
+                <p className="mt-1 text-sm text-destructive">{fieldErrors.name}</p>
+              )}
+            </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-foreground">Category name</label>
-          <Input
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            maxLength={CATEGORY_LIMITS.name}
-            required
-          />
-          {fieldErrors.name && <p className="mt-1 text-sm text-destructive">{fieldErrors.name}</p>}
-        </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">Heading</label>
+              <Input
+                name="heading"
+                value={form.heading}
+                onChange={handleChange}
+                maxLength={CATEGORY_LIMITS.heading}
+                required
+              />
+              <p className="mt-1 text-xs text-muted-foreground">Shown on the card.</p>
+              {fieldErrors.heading && (
+                <p className="mt-1 text-sm text-destructive">{fieldErrors.heading}</p>
+              )}
+            </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-foreground">Heading</label>
-          <Input
-            name="heading"
-            value={form.heading}
-            onChange={handleChange}
-            maxLength={CATEGORY_LIMITS.heading}
-            required
-          />
-          {fieldErrors.heading && (
-            <p className="mt-1 text-sm text-destructive">{fieldErrors.heading}</p>
-          )}
-        </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-foreground">Description</label>
+              <Textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                rows={6}
+                maxLength={CATEGORY_LIMITS.description}
+                required
+              />
+              <p className="mt-1 text-right text-xs text-muted-foreground">
+                {form.description.length}/{CATEGORY_LIMITS.description}
+              </p>
+              {fieldErrors.description && (
+                <p className="mt-1 text-sm text-destructive">{fieldErrors.description}</p>
+              )}
+            </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-foreground">Description</label>
-          <Textarea
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            rows={5}
-            maxLength={CATEGORY_LIMITS.description}
-            required
-          />
-          <p className="mt-1 text-right text-xs text-muted-foreground">
-            {form.description.length}/{CATEGORY_LIMITS.description}
-          </p>
-          {fieldErrors.description && (
-            <p className="mt-1 text-sm text-destructive">{fieldErrors.description}</p>
-          )}
-        </div>
+            {success && <p className="text-sm text-primary">{success}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-foreground">Images</label>
-          {isEdit ? (
-            <CategoryImageManager
-              categoryId={id as string}
-              images={images}
-              onImagesChange={setImages}
-            />
-          ) : (
-            <PendingImagePicker
-              value={pendingImages}
-              onChange={setPendingImages}
-              disabled={saving}
-            />
-          )}
-        </div>
+            <div className="flex items-center gap-2 border-t border-border pt-5">
+              <Button type="submit" disabled={saving}>
+                {saving ? "Saving…" : isEdit ? "Save changes" : "Create category"}
+              </Button>
+              <Button type="button" variant="ghost" asChild disabled={saving}>
+                <Link to="/admin/categories">Cancel</Link>
+              </Button>
+            </div>
+          </AdminCard>
 
-        {success && <p className="text-sm text-primary">{success}</p>}
-        {error && <p className="text-sm text-destructive">{error}</p>}
-
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={saving}>
-            {saving ? "Saving..." : "Save"}
-          </Button>
-          <Button type="button" variant="outline" asChild disabled={saving}>
-            <Link to="/admin/categories">Cancel</Link>
-          </Button>
-        </div>
-      </form>
-    </div>
+          <AdminCard
+            title="Photos"
+            description={
+              isEdit
+                ? "The first photo is used as the card cover. Reorder with the arrows."
+                : "Photos are uploaded after the category is created."
+            }
+            className="lg:col-span-3"
+          >
+            {isEdit ? (
+              <CategoryImageManager
+                categoryId={id as string}
+                images={images}
+                onImagesChange={setImages}
+              />
+            ) : (
+              <PendingImagePicker
+                value={pendingImages}
+                onChange={setPendingImages}
+                disabled={saving}
+              />
+            )}
+          </AdminCard>
+        </form>
+      )}
+    </AdminShell>
   );
 }

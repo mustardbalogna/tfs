@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import Layout from "./components/Layout";
 import PageViewTracker from "./components/PageViewTracker";
@@ -9,11 +9,12 @@ import Services from "./pages/Services";
 import Categories from "./pages/Categories";
 import Contact from "./pages/Contact";
 import AdminLogin from "./pages/admin/Login";
-import AdminDashboard from "./pages/admin/Dashboard";
+import AdminOverview from "./pages/admin/Overview";
+import AdminMessages from "./pages/admin/Messages";
 import AdminStats from "./pages/admin/Stats";
 import AdminCategories from "./pages/admin/Categories";
 import AdminCategoryForm from "./pages/admin/CategoryForm";
-import AdminContent from "./pages/admin/Content";
+import AdminEditor from "./pages/admin/Editor";
 import "./styles.css";
 
 const rootElement = document.getElementById("root");
@@ -31,12 +32,14 @@ createRoot(rootElement).render(
         <Route path="contact" element={<Contact />} />
       </Route>
       <Route path="admin/login" element={<AdminLogin />} />
-      <Route path="admin" element={<AdminDashboard />} />
+      <Route path="admin" element={<AdminOverview />} />
+      <Route path="admin/messages" element={<AdminMessages />} />
+      <Route path="admin/editor" element={<AdminEditor />} />
+      <Route path="admin/content" element={<Navigate to="/admin/editor" replace />} />
       <Route path="admin/stats" element={<AdminStats />} />
       <Route path="admin/categories" element={<AdminCategories />} />
       <Route path="admin/categories/new" element={<AdminCategoryForm />} />
       <Route path="admin/categories/:id/edit" element={<AdminCategoryForm />} />
-      <Route path="admin/content" element={<AdminContent />} />
     </Routes>
     <Analytics />
   </BrowserRouter>,

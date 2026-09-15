@@ -4,7 +4,49 @@ import { requireAdmin } from "./_lib/auth.js";
 import { checkRateLimit, getClientIp } from "./_lib/rateLimit.js";
 
 const ROW_ID = "default";
-const MAX_CONTENT_CHARS = 50_000;
+const MAX_CONTENT_CHARS = 100_000;
+const MAX_DEPTH = 8;
+const MAX_STRING = 5_000;
+const MAX_ARRAY = 100;
+const MAX_KEYS = 100;
+const SAFE_KEY = /^[A-Za-z0-9_-]{1,64}$/;
+
+/**
+ * Structural sanitiser for the content document. The client owns the exact
+ * shape (and re-normalises on read), so here we only guarantee that what gets
+ * stored is bounded, plain JSON made of strings/numbers/booleans — no
+ * prototype-polluting keys, no oversized blobs, no unexpected value types.
+ * Returns null when the input can't be made safe.
+ */
+function sanitize(value: unknown, depth = 0): unknown | null {
+  if (depth > MAX_DEPTH) return null;
+  if (typeof value === "string") return value.slice(0, MAX_STRING);
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "boolean") return value;
+  if (Array.isArray(value)) {
+    const out: unknown[] = [];
+    for (const item of value.slice(0, MAX_ARRAY)) {
+      const clean = sanitize(item, depth + 1);
+      if (clean === null) return null;
+      out.push(clean);
+    }
+    return out;
+  }
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length > MAX_KEYS) return null;
+    for (const [key, val] of entries) {
+      if (!SAFE_KEY.test(key) || key === "__proto__" || key === "constructor") return null;
+      if (val === undefined) continue;
+      const clean = sanitize(val, depth + 1);
+      if (clean === null) return null;
+      out[key] = clean;
+    }
+    return out;
+  }
+  return null;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const supabase = getSupabaseClient();
@@ -46,8 +88,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (JSON.stringify(content).length > MAX_CONTENT_CHARS) {
       return res.status(400).json({ error: "Content is too large" });
     }
+    const clean = sanitize(content);
+    if (!clean || typeof clean !== "object") {
+      return res.status(400).json({ error: "Content contains unsupported values" });
+    }
 
-    const { error } = await supabase.from("site_content").upsert({ id: ROW_ID, data: content });
+    const { error } = await supabase.from("site_content").upsert({ id: ROW_ID, data: clean });
     if (error) {
       console.error("Failed to save site content", error);
       return res.status(500).json({ error: "Failed to save site content" });

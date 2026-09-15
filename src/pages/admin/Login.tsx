@@ -32,24 +32,38 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4">
-      <h1 className="font-serif text-2xl text-foreground">Admin Login</h1>
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-foreground">Password</label>
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoFocus
-          />
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center">
+          <p className="font-serif text-2xl tracking-tight text-primary">Top Furniture Supplies</p>
+          <p className="mt-1 text-sm text-muted-foreground">Sign in to manage your website</p>
         </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" disabled={loading} className="w-full">
-          {loading ? "Signing in..." : "Sign in"}
-        </Button>
-      </form>
+        <form
+          onSubmit={handleSubmit}
+          className="mt-6 space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm"
+        >
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">Password</label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoFocus
+              autoComplete="current-password"
+            />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Signing in…" : "Sign in"}
+          </Button>
+        </form>
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          <a href="/" className="hover:text-primary">
+            ← Back to the website
+          </a>
+        </p>
+      </div>
     </div>
   );
 }
