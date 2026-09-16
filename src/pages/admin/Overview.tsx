@@ -12,6 +12,8 @@ interface Snapshot {
   recent: { id: string; name: string; service: string; created_at: string; read: boolean }[];
 }
 
+type MessageRow = Snapshot["recent"][number] & { deleted_at?: string | null };
+
 export default function AdminOverview() {
   const [data, setData] = useState<Snapshot | null>(null);
   const [error, setError] = useState("");
@@ -31,9 +33,8 @@ export default function AdminOverview() {
           navigate("/admin/login");
           return;
         }
-        const messages: Snapshot["recent"] = msgRes.ok
-          ? ((await msgRes.json()).messages ?? [])
-          : [];
+        const all: MessageRow[] = msgRes.ok ? ((await msgRes.json()).messages ?? []) : [];
+        const messages = all.filter((m) => !m.deleted_at);
         const categories = catRes.ok ? ((await catRes.json()).categories ?? []).length : 0;
         const views30d = statsRes.ok ? ((await statsRes.json()).totalViews as number) : null;
         if (cancelled) return;

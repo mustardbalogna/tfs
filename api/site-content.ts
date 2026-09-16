@@ -14,38 +14,42 @@ const SAFE_KEY = /^[A-Za-z0-9_-]{1,64}$/;
 /**
  * Structural sanitiser for the content document. The client owns the exact
  * shape (and re-normalises on read), so here we only guarantee that what gets
- * stored is bounded, plain JSON made of strings/numbers/booleans — no
+ * stored is bounded, plain JSON made of strings/numbers/booleans/null — no
  * prototype-polluting keys, no oversized blobs, no unexpected value types.
- * Returns null when the input can't be made safe.
+ * Returns INVALID when the input can't be made safe.
  */
-function sanitize(value: unknown, depth = 0): unknown | null {
-  if (depth > MAX_DEPTH) return null;
+const INVALID = Symbol("invalid");
+
+function sanitize(value: unknown, depth = 0): unknown | typeof INVALID {
+  if (depth > MAX_DEPTH) return INVALID;
+  // null is a real value in the content model (e.g. "no image set").
+  if (value === null) return null;
   if (typeof value === "string") return value.slice(0, MAX_STRING);
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : INVALID;
   if (typeof value === "boolean") return value;
   if (Array.isArray(value)) {
     const out: unknown[] = [];
     for (const item of value.slice(0, MAX_ARRAY)) {
       const clean = sanitize(item, depth + 1);
-      if (clean === null) return null;
+      if (clean === INVALID) return INVALID;
       out.push(clean);
     }
     return out;
   }
-  if (value && typeof value === "object") {
+  if (typeof value === "object") {
     const out: Record<string, unknown> = {};
     const entries = Object.entries(value as Record<string, unknown>);
-    if (entries.length > MAX_KEYS) return null;
+    if (entries.length > MAX_KEYS) return INVALID;
     for (const [key, val] of entries) {
-      if (!SAFE_KEY.test(key) || key === "__proto__" || key === "constructor") return null;
+      if (!SAFE_KEY.test(key) || key === "__proto__" || key === "constructor") return INVALID;
       if (val === undefined) continue;
       const clean = sanitize(val, depth + 1);
-      if (clean === null) return null;
+      if (clean === INVALID) return INVALID;
       out[key] = clean;
     }
     return out;
   }
-  return null;
+  return INVALID;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -89,7 +93,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Content is too large" });
     }
     const clean = sanitize(content);
-    if (!clean || typeof clean !== "object") {
+    if (clean === INVALID || clean === null || typeof clean !== "object") {
       return res.status(400).json({ error: "Content contains unsupported values" });
     }
 

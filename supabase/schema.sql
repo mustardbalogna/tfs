@@ -16,6 +16,12 @@ alter table public.messages enable row level security;
 -- public anon key, so messages can only be read/written via our own API.
 grant select, insert, update, delete on public.messages to service_role;
 
+-- Soft delete (Sept 2026): deleted messages move to a "Deleted" tab in the admin
+-- and are purged automatically once they've been there for 30 days (the API
+-- runs the purge on each admin load, so no cron job is needed). Safe to re-run.
+alter table public.messages add column if not exists deleted_at timestamptz;
+create index if not exists messages_deleted_at_idx on public.messages (deleted_at);
+
 create table if not exists public.rate_limits (
   key text primary key,
   count integer not null default 1,
